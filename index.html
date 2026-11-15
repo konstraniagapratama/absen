@@ -1,0 +1,938 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<base target="_top">
+<script>window.KONSTRA_API = "https://script.google.com/macros/s/AKfycbyNIhwNeRhhxcP1HM9zmq5PMVozGyfHaqnG0qFns5O4raMed5KSdVSK1uz1bujj7gf9rA/exec";</script>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Absensi Konstra</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=Manrope:wght@200;300;400;500;600;700&display=swap">
+<style>
+/* Layout: corporate stationery. Porcelain page, evergreen clock panel with a fine diamond lattice (from the logo), maroon only as a signature rule/indicator. Kiosk = panel + name grid; admin = tabs + ledger tables. */
+:root{
+  --bg:#E6EEE8; --surface:#FFFFFF; --sunk:#E9EFEA; --line:#D6E0D8; --line-strong:#C2CEC5; --lattice:rgba(15,58,41,.05);
+  --fg:#16211B; --muted:#5E6C63;
+  --accent:#145C3A; --accent-fg:#FFFFFF; --accent-soft:#E6F0EA;
+  --panel:#0F3A29; --panel-fg:#F3F6F1;
+  --maroon:#7C1E35; --maroon-soft:#F6E7EB;
+  --sun:#7C1E35; --sun-fg:#FFFFFF;
+  --ok:#17784A; --ok-soft:#E1F2E8; --warn:#B4560B; --warn-soft:#FBEBDB; --bad:#B42335; --bad-soft:#FAE3E6;
+  --paper:#FFFFFF; --shadow:0 1px 2px rgba(15,34,25,.05),0 12px 32px rgba(15,34,25,.07);
+  --f-display:"DM Serif Display",Georgia,"Times New Roman",serif;
+  --f-body:"Manrope",system-ui,-apple-system,"Segoe UI",sans-serif;
+  --f-mono:"JetBrains Mono",ui-monospace,"SF Mono",Menlo,monospace;
+  --r:12px;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --bg:#09100C; --surface:#111B15; --sunk:#17241D; --line:#24352B; --line-strong:#33483B; --lattice:rgba(255,255,255,.03);
+  --fg:#E9F0EA; --muted:#97A99D; --accent:#6CC79A; --accent-fg:#06200F; --accent-soft:#13301F;
+  --panel:#0E2A1F; --panel-fg:#EEF4EF; --maroon:#E07A93; --maroon-soft:#35161F; --sun:#E07A93; --sun-fg:#2A0610;
+  --ok:#5BD49A; --ok-soft:#123327; --warn:#F0A659; --warn-soft:#3A2810; --bad:#FF7C8C; --bad-soft:#3D1820;
+  --paper:#16231B; --shadow:0 1px 2px rgba(0,0,0,.3),0 12px 32px rgba(0,0,0,.35); color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#0B120E; --surface:#111B15; --sunk:#17241D; --line:#24352B; --line-strong:#33483B;
+  --fg:#E9F0EA; --muted:#97A99D; --accent:#6CC79A; --accent-fg:#06200F; --accent-soft:#13301F;
+  --panel:#0E2A1F; --panel-fg:#EEF4EF; --maroon:#E07A93; --maroon-soft:#35161F; --sun:#E07A93; --sun-fg:#2A0610;
+  --ok:#5BD49A; --ok-soft:#123327; --warn:#F0A659; --warn-soft:#3A2810; --bad:#FF7C8C; --bad-soft:#3D1820;
+  --paper:#16231B; --shadow:0 1px 2px rgba(0,0,0,.3),0 12px 32px rgba(0,0,0,.35); color-scheme:dark}
+
+*{box-sizing:border-box}
+body{background-color:var(--bg);background-image:repeating-linear-gradient(45deg,var(--lattice) 0 1px,transparent 1px 28px),repeating-linear-gradient(-45deg,var(--lattice) 0 1px,transparent 1px 28px);background-attachment:fixed;color:var(--fg);font-family:var(--f-body);font-size:15px;line-height:1.55;-webkit-font-smoothing:antialiased;
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:0 40px}
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:10;background:var(--bg)}
+button,input,select{font:inherit;color:inherit}
+button{cursor:pointer}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.mono{font-variant-numeric:tabular-nums}
+.wrap{max-width:1160px;margin:0 auto}
+h1,h2,h3{font-family:var(--f-display);font-weight:400;text-wrap:balance;margin:0;letter-spacing:.005em}
+.eyebrow{font-size:10.5px;font-weight:700;letter-spacing:.16em;text-transform:uppercase;color:var(--muted)}
+
+/* top bar */
+.top{position:sticky;top:calc(env(safe-area-inset-top,0px) + 10px);z-index:5;margin-top:10px;background:var(--panel);color:var(--panel-fg);border-radius:14px;display:flex;align-items:center;gap:14px;padding:12px 16px;flex-wrap:wrap;box-shadow:0 10px 30px rgba(9,30,20,.18)}
+.top::after{content:"";position:absolute;left:16px;bottom:0;width:64px;height:3px;background:var(--maroon);border-radius:2px 2px 0 0}
+.brand{display:flex;align-items:center;gap:14px;margin-right:auto;min-width:0}
+.logo{height:50px;width:auto;border-radius:9px;background:#FFFFFF;padding:4px 8px;display:block}
+.brand b{font-family:var(--f-display);font-weight:400;font-size:21px;display:block;line-height:1.15;color:var(--panel-fg)}
+.brand small{display:block;color:var(--panel-fg);opacity:.68;font-size:10.5px;font-weight:700;letter-spacing:.16em;text-transform:uppercase;margin-top:3px}
+.brandbar{height:22px}
+.seg{display:inline-flex;border:1px solid rgba(255,255,255,.2);background:rgba(255,255,255,.06);border-radius:8px;padding:3px}
+.seg button{border:0;background:transparent;padding:7px 14px;border-radius:6px;font-weight:600;font-size:13px;color:var(--panel-fg);opacity:.75}
+.seg button[aria-pressed="true"]{background:#FFFFFF;color:#0F3A29;opacity:1}
+.sync{font-size:12px;color:var(--panel-fg);opacity:.8;display:flex;align-items:center;gap:6px}
+.dot{width:7px;height:7px;border-radius:50%;background:var(--muted)}
+.dot.on{background:var(--ok)} .dot.off{background:var(--bad)}
+
+/* buttons */
+.btn{border:1px solid var(--line-strong);background:var(--surface);padding:10px 16px;border-radius:8px;font-weight:600;display:inline-flex;align-items:center;gap:8px;justify-content:center;transition:border-color .15s,background .15s}
+.btn:hover{border-color:var(--accent)}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:var(--accent-fg)}
+.btn.primary:hover{filter:brightness(1.08)}
+.btn.sun{background:var(--sun);border-color:var(--sun);color:var(--sun-fg)}
+.btn.danger{color:var(--bad);border-color:var(--bad-soft)}
+.btn.danger.solid{background:var(--bad);color:#FFFFFF;border-color:var(--bad)}
+.btn.ghost{background:transparent;border-color:transparent}
+.btn.sm{padding:6px 11px;font-size:13px;border-radius:7px}
+.btn:disabled{opacity:.5;cursor:not-allowed}
+
+/* notice */
+.notice{background:var(--warn-soft);color:var(--warn);border-radius:8px;padding:10px 14px;font-size:13px;font-weight:500;margin-bottom:16px}
+.notice.info{background:var(--accent-soft);color:var(--accent)}
+
+/* ===== KIOSK ===== */
+.kiosk{display:grid;grid-template-columns:350px 1fr;gap:28px;align-items:start}
+.clockcard{background-color:var(--panel);color:var(--panel-fg);border-radius:14px;padding:28px 26px;position:sticky;top:calc(env(safe-area-inset-top,0px) + 112px);overflow:hidden;
+  background-image:repeating-linear-gradient(45deg,rgba(255,255,255,.035) 0 1px,transparent 1px 22px),repeating-linear-gradient(-45deg,rgba(255,255,255,.035) 0 1px,transparent 1px 22px)}
+.clockcard::before{content:"";position:absolute;right:-46px;top:-46px;width:132px;height:132px;transform:rotate(45deg);border:1px solid rgba(255,255,255,.18);border-radius:6px}
+.clockcard::after{content:"";position:absolute;left:26px;right:26px;bottom:0;height:3px;background:var(--maroon)}
+.clockcard>*{position:relative}
+.clockcard .eyebrow{color:inherit;opacity:.7}
+.bigclock{font-family:var(--f-body);font-weight:200;font-size:76px;line-height:1;letter-spacing:-.02em;margin:12px 0 6px;font-variant-numeric:tabular-nums}
+.bigclock span{font-size:30px;opacity:.55;font-weight:300}
+.today{font-family:var(--f-display);font-size:19px;opacity:.95}
+.storebtn{margin-top:24px;display:flex;align-items:center;justify-content:space-between;gap:10px;width:100%;background:transparent;border:1px solid rgba(255,255,255,.28);color:inherit;border-radius:10px;padding:12px 14px;text-align:left;transition:background .15s}
+.storebtn:hover{background:rgba(255,255,255,.07)}
+.storebtn b{font-family:var(--f-display);font-weight:400;font-size:21px;display:block}
+.shiftnow{margin-top:16px;font-size:13px;opacity:.85}
+.counts{display:flex;gap:28px;margin-top:20px;padding-top:18px;border-top:1px solid rgba(255,255,255,.16)}
+.counts div{font-size:11px;letter-spacing:.08em;text-transform:uppercase;opacity:.75}
+.counts b{display:block;font-family:var(--f-display);font-weight:400;font-size:34px;letter-spacing:0;text-transform:none;opacity:1;line-height:1.1}
+
+.picker h2{font-size:32px}
+.pickhead{display:flex;align-items:end;justify-content:space-between;gap:14px;flex-wrap:wrap;margin-bottom:18px}
+.search{flex:1;min-width:200px;max-width:340px;position:relative}
+.search input{width:100%;border:1px solid var(--line-strong);background:var(--surface);border-radius:8px;padding:11px 14px 11px 40px}
+.search svg{position:absolute;left:13px;top:50%;transform:translateY(-50%);color:var(--muted)}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:14px}
+.emp{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:18px;text-align:left;display:flex;flex-direction:column;gap:16px;min-height:140px;transition:border-color .15s,box-shadow .15s,transform .15s}
+.emp:hover{border-color:var(--accent);box-shadow:var(--shadow);transform:translateY(-2px)}
+.emp .who{display:flex;gap:14px;align-items:center}
+.av{width:46px;height:46px;flex:none;border-radius:50%;display:grid;place-items:center;font-family:var(--f-display);font-weight:400;font-size:17px;background:var(--accent-soft);color:var(--accent);box-shadow:inset 0 0 0 1px var(--line)}
+.emp .nm{font-weight:700;line-height:1.3}
+.emp .rl{font-size:12px;color:var(--muted);margin-top:2px}
+.emp .foot{margin-top:auto;display:flex;justify-content:space-between;align-items:center;gap:8px;padding-top:12px;border-top:1px solid var(--line)}
+.pill{display:inline-flex;align-items:center;gap:6px;font-size:11.5px;font-weight:700;padding:4px 10px;border-radius:999px;background:var(--sunk);color:var(--muted);white-space:nowrap}
+.pill.ok{background:var(--ok-soft);color:var(--ok)}
+.pill.warn{background:var(--warn-soft);color:var(--warn)}
+.pill.bad{background:var(--bad-soft);color:var(--bad)}
+.pill.blue{background:var(--accent-soft);color:var(--accent)}
+.pill.sample{background:var(--maroon-soft);color:var(--maroon)}
+.empty{border:1px dashed var(--line-strong);border-radius:var(--r);padding:30px;text-align:center;color:var(--muted)}
+.empty b{color:var(--fg);display:block;font-family:var(--f-display);font-weight:400;font-size:19px;margin-bottom:4px}
+
+/* sheet / modal */
+.scrim{position:fixed;inset:0;background:rgba(8,20,14,.55);z-index:20;display:grid;place-items:center;padding:16px}
+.sheet{background:var(--surface);border-radius:16px;width:100%;max-width:440px;max-height:calc(100% - 16px);overflow:auto;padding:26px;box-shadow:var(--shadow);border-top:3px solid var(--maroon)}
+.sheet.wide{max-width:640px}
+.sheethead{display:flex;align-items:center;gap:12px;margin-bottom:20px}
+.sheethead .x{margin-left:auto}
+.pinrow{display:flex;justify-content:center;gap:16px;margin:8px 0 22px}
+.pinrow i{width:14px;height:14px;border-radius:50%;border:1.5px solid var(--line-strong)}
+.pinrow i.f{background:var(--accent);border-color:var(--accent)}
+.pinrow.shake{animation:shake .35s}
+@keyframes shake{20%,60%{transform:translateX(-8px)}40%,80%{transform:translateX(8px)}}
+.pad{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+.pad button{height:60px;border-radius:10px;border:1px solid var(--line);background:var(--bg);font-family:var(--f-body);font-size:24px;font-weight:300;font-variant-numeric:tabular-nums}
+.pad button:hover{border-color:var(--accent)}
+.pad button:active{background:var(--accent-soft)}
+.pad .fn{font-size:13px;font-weight:600;color:var(--muted)}
+.err{color:var(--bad);font-size:13px;font-weight:600;text-align:center;min-height:20px;margin-top:10px}
+.cam{aspect-ratio:1;max-width:100%;width:240px;margin:0 auto 18px;border-radius:50%;background:var(--sunk);display:grid;place-items:center;overflow:hidden;border:1px dashed var(--line-strong)}
+.cam img{width:100%;height:100%;object-fit:cover}
+.actrow{display:flex;gap:10px;flex-wrap:wrap}
+.actrow .btn{flex:1}
+.bigact{width:100%;padding:17px;font-size:17px;border-radius:10px}
+
+/* receipt */
+.receipt{background:var(--paper);color:var(--fg);font-family:var(--f-body);font-size:13px;padding:24px 22px;position:relative;margin:0 auto 8px;max-width:330px;border:1px solid var(--line);border-top:3px solid var(--maroon);border-radius:4px}
+.receipt .c{text-align:center}
+.receipt h3{font-family:var(--f-display);font-weight:400;font-size:15px;letter-spacing:.06em}
+.receipt hr{border:0;border-top:1px solid var(--line);margin:14px 0}
+.receipt .r{display:flex;justify-content:space-between;gap:10px}
+.receipt .r span:first-child{color:var(--muted)}
+.receipt .t{font-family:var(--f-body);font-size:48px;font-weight:200;text-align:center;letter-spacing:-.02em;margin:6px 0;font-variant-numeric:tabular-nums}
+.receipt .st{text-align:center;margin-top:8px}
+.countdown{text-align:center;color:var(--muted);font-size:12px;margin-top:14px}
+
+/* ===== ADMIN ===== */
+.tabs{display:flex;gap:6px;border-bottom:1px solid var(--line);margin-bottom:22px;overflow-x:auto}
+.tabs button{border:0;background:transparent;padding:12px 14px;font-weight:600;font-size:14px;color:var(--muted);border-bottom:2px solid transparent;margin-bottom:-1px;white-space:nowrap}
+.tabs button:hover{color:var(--fg)}
+.tabs button[aria-selected="true"]{color:var(--fg);border-bottom-color:var(--maroon)}
+.toolbar{display:flex;gap:12px;flex-wrap:wrap;align-items:end;margin-bottom:18px}
+.field{display:flex;flex-direction:column;gap:6px;min-width:0}
+.field label{font-size:10.5px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:var(--muted)}
+.field input,.field select{border:1px solid var(--line-strong);background:var(--surface);border-radius:8px;padding:9px 12px;min-width:0}
+.kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:0;margin-bottom:20px;background:var(--surface);border:1px solid var(--line);border-radius:var(--r);overflow:hidden}
+.kpi{padding:18px 20px;box-shadow:-1px 0 0 var(--line),0 -1px 0 var(--line)}
+.kpi b{font-family:var(--f-display);font-weight:400;font-size:38px;display:block;line-height:1.05;margin-top:6px;font-variant-numeric:tabular-nums}
+.kpi .sub{display:block;margin-top:2px}
+.kpi.ok b{color:var(--ok)} .kpi.warn b{color:var(--warn)} .kpi.bad b{color:var(--bad)}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);overflow:hidden}
+.card+.card{margin-top:18px}
+.cardhead{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:16px 20px;border-bottom:1px solid var(--line);flex-wrap:wrap}
+.cardhead h3{font-size:21px}
+.tbl{overflow-x:auto}
+table{width:100%;border-collapse:collapse;font-size:14px}
+th{font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);text-align:left;font-weight:700;padding:12px 20px;border-bottom:1px solid var(--line-strong);white-space:nowrap}
+td{padding:12px 20px;border-top:1px solid var(--line);vertical-align:middle;white-space:nowrap}
+tbody tr:first-child td{border-top:0}
+tbody tr:hover td{background:var(--bg)}
+td.num,th.num{text-align:right;font-variant-numeric:tabular-nums}
+.thumbs{display:flex;gap:6px}
+.thumbs button{width:36px;height:36px;padding:0;border:1px solid var(--line);border-radius:50%;overflow:hidden;background:var(--sunk)}
+.thumbs img{width:100%;height:100%;object-fit:cover;display:block}
+.thumbs .none{width:36px;height:36px;border-radius:50%;background:var(--sunk);display:grid;place-items:center;color:var(--muted);font-size:11px}
+.namecell{display:flex;align-items:center;gap:12px}
+.namecell .av{width:34px;height:34px;font-size:13px}
+.sub{font-size:12px;color:var(--muted)}
+.formgrid{display:grid;grid-template-columns:repeat(2,1fr);gap:14px}
+.formgrid .full{grid-column:1/-1}
+.setgrid{display:grid;grid-template-columns:1fr 1fr;gap:18px}
+.listrow{display:flex;gap:8px;align-items:center;padding:12px 20px;border-top:1px solid var(--line);flex-wrap:wrap}
+.listrow input{border:1px solid var(--line-strong);background:var(--surface);border-radius:7px;padding:7px 10px;min-width:0}
+.pad16{padding:18px 20px}
+.gate{max-width:380px;margin:48px auto;text-align:center}
+.gate h2{font-size:30px;margin-bottom:6px}
+.gate p{color:var(--muted);margin:0 0 20px}
+.pinlist{display:flex;flex-direction:column}.pinrow2{display:flex;flex-wrap:wrap;gap:10px 16px;align-items:center;justify-content:space-between;padding:14px 18px;border-top:1px solid var(--line)}.pinact{display:flex;flex-wrap:wrap;gap:8px;align-items:center;justify-content:flex-end;margin-left:auto}
+.confirmbar{display:flex;gap:8px;align-items:center;background:var(--bad-soft);color:var(--bad);padding:8px 12px;border-radius:8px;font-size:13px;font-weight:600;flex-wrap:wrap}
+.toast{position:fixed;left:50%;bottom:calc(20px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:var(--panel);color:var(--panel-fg);padding:11px 20px;border-radius:10px;font-weight:600;font-size:14px;z-index:40;box-shadow:var(--shadow)}
+.bigphoto{width:100%;border-radius:12px}
+
+/* weekly report */
+.wknav{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.wknav select{border:1px solid var(--line-strong);background:var(--surface);border-radius:7px;padding:6px 10px;font-size:13px}
+.sr-only{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+.wknav .range{font-family:var(--f-display);font-weight:400;font-size:24px;padding:0 8px}
+.kpis.five{grid-template-columns:repeat(5,1fr)}
+.kpi .meter{height:4px;border-radius:99px;background:var(--sunk);margin-top:12px;overflow:hidden}
+.kpi .meter i{display:block;height:100%;background:var(--ok);border-radius:99px}
+.chart{display:grid;grid-template-columns:repeat(7,1fr);gap:12px;padding:22px 20px 12px;align-items:end}
+.chart .col{display:flex;flex-direction:column;align-items:center;gap:8px;min-width:0}
+.chart .track{width:100%;max-width:44px;height:150px;background:var(--sunk);border-radius:6px;display:flex;flex-direction:column-reverse;overflow:hidden}
+.chart .s-ok{background:var(--accent)} .chart .s-late{background:var(--warn)}
+.chart .val{font-family:var(--f-display);font-size:17px}
+.chart .lbl{font-size:11.5px;font-weight:600;color:var(--muted);text-align:center;line-height:1.35}
+.chart .col.off .track{opacity:.45} .chart .col.today .lbl{color:var(--maroon)}
+.legend{display:flex;gap:16px;flex-wrap:wrap;font-size:12px;color:var(--muted);padding:0 20px 16px}
+.legend span{display:inline-flex;gap:6px;align-items:center}
+.legend i,.dots i{width:12px;height:12px;border-radius:3px;display:inline-block;background:var(--sunk)}
+.legend i.ok{background:var(--accent)}
+.dots{display:flex;gap:4px}
+.dots i.ok{background:var(--accent)} .dots i.late,.legend i.late{background:var(--warn)} .dots i.absent,.legend i.absent{background:var(--bad)}
+.dots i.pending,.legend i.pending{background:transparent;box-shadow:inset 0 0 0 1.5px var(--line-strong)} .dots i.off,.legend i.off{opacity:.5}
+.attn{display:grid;gap:0}
+.attn .row{display:flex;gap:14px;align-items:center;padding:14px 20px;border-top:1px solid var(--line)}
+.attn .row:first-child{border-top:0}
+.daycheck{display:flex;gap:6px;flex-wrap:wrap}
+.daycheck label{display:inline-flex;align-items:center;gap:6px;border:1px solid var(--line-strong);border-radius:7px;padding:6px 10px;font-size:13px;font-weight:600;letter-spacing:0;text-transform:none;color:var(--fg)}
+
+@media (max-width:860px){
+  .kiosk{grid-template-columns:1fr;gap:22px}
+  .clockcard{position:relative;top:auto}
+  .bigclock{font-size:60px}
+  .kpis,.kpis.five{grid-template-columns:repeat(2,1fr)}
+  .kpis.five .kpi:last-child{grid-column:1/-1}
+  .chart{gap:6px;padding-inline:12px} .chart .track{height:110px}
+  .setgrid,.formgrid{grid-template-columns:1fr}
+  .brand b{font-size:18px}
+  .logo{height:44px}
+}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+.busy{position:fixed;inset:0;background:rgba(8,20,14,.35);z-index:30;display:grid;place-items:center}
+.busy div{background:var(--surface);padding:14px 20px;border-radius:10px;font-weight:600;box-shadow:var(--shadow)}
+a.btn{text-decoration:none;color:inherit}
+html,body{margin:0}
+[hidden]{display:none!important}
+.megrid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:12px}
+.megrid .btn{padding:12px 10px;font-size:14px}
+.mestat{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;margin:6px 0 14px}
+.field textarea{border:1px solid var(--line-strong);background:var(--surface);color:var(--fg);border-radius:8px;padding:10px 12px;font:inherit;resize:vertical;min-height:84px}
+.choice{display:grid;gap:8px;margin:10px 0 14px}
+.choice .btn{flex-direction:column;align-items:flex-start;text-align:left;gap:2px;padding:12px 14px}
+.choice .btn span{font-size:12px;font-weight:500;opacity:.8}
+.minikpi{display:grid;grid-template-columns:repeat(4,1fr);border:1px solid var(--line);border-radius:10px;overflow:hidden;margin-bottom:12px}
+.minikpi div{padding:10px 8px;text-align:center;box-shadow:-1px 0 0 var(--line)}
+.minikpi b{display:block;font-family:var(--f-display);font-weight:400;font-size:24px;line-height:1.1}
+.minikpi span{font-size:11px;color:var(--muted);letter-spacing:.06em;text-transform:uppercase}
+.histlist{border:1px solid var(--line);border-radius:10px;overflow:hidden;max-height:46vh;overflow-y:auto}
+.hrow{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:10px 12px;border-top:1px solid var(--line)}
+.hrow:first-child{border-top:0}
+.hrow .sub{white-space:normal}
+.notice.info{margin-bottom:12px}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="top">
+    <div class="brand">
+      <img class="logo" alt="Logo PT Konstra Niaga Pratama" src="data:image/jpeg;base64,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">
+      <div><b>PT Konstra Niaga Pratama</b><small>Sistem Absensi · Kantor &amp; KNP Mart</small></div>
+    </div>
+    <span class="sync"><i class="dot" id="syncdot"></i><span id="synctxt">Memuat…</span></span>
+    <div class="seg" role="group" aria-label="Mode">
+      <button id="m-kiosk" aria-pressed="true">Absen</button>
+      <button id="m-admin" aria-pressed="false">Admin</button>
+    </div>
+  </header>
+  <div class="brandbar" aria-hidden="true"></div>
+  <div id="banner"></div>
+  <main id="kioskView"></main>
+  <main id="adminView" hidden></main>
+</div>
+<div id="modal"></div>
+<div id="busy" class="busy" hidden><div id="busytxt">Menyimpan…</div></div>
+<div id="toast" class="toast" hidden></div>
+<input type="file" id="camInput" accept="image/*" capture="user" hidden>
+
+<script>
+const URL_TOKO = (new URLSearchParams(location.search).get("unit") || new URLSearchParams(location.search).get("toko") || "").replace(/[^a-zA-Z0-9_-]/g, "");
+(() => {
+"use strict";
+const $ = (s, r=document) => r.querySelector(s);
+const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const pad2 = n => String(n).padStart(2,"0");
+// Di halaman pembungkus (di luar script.google.com) data diambil lewat fetch tanpa akun Google.
+const API_URL = window.KONSTRA_API || "";
+const call = (fn, ...a) => API_URL
+  ? fetch(API_URL, { method: "POST", body: JSON.stringify({ fn, args: a }), credentials: "omit", redirect: "follow" })
+      .then(r => { if (!r.ok) throw new Error("Gagal tersambung ke server (" + r.status + ")"); return r.json(); })
+      .then(j => { if (!j.ok) throw new Error(j.error); return j.result; })
+  : new Promise((res, rej) => google.script.run.withSuccessHandler(res).withFailureHandler(rej)[fn](...a));
+const errMsg = e => String((e && e.message) || e || "Terjadi kesalahan").replace(/^(Exception|Error):\s*/,"");
+const ls = { get(k){try{return localStorage.getItem(k)}catch(e){return null}}, set(k,v){try{localStorage.setItem(k,v)}catch(e){}} };
+let toastT; const toast = m => { const t=$("#toast"); t.textContent=m; t.hidden=false; clearTimeout(toastT); toastT=setTimeout(()=>t.hidden=true,2600); };
+const busy = (on, txt="Menyimpan…") => { $("#busy").hidden=!on; $("#busytxt").textContent=txt; };
+const initials = n => String(n||"?").replace(/^contoh\s*[-–]\s*/i,"").split(/\s+/).filter(Boolean).slice(0,2).map(w=>w[0]).join("").toUpperCase() || "?";
+const HARI=["Minggu","Senin","Selasa","Rabu","Kamis","Jumat","Sabtu"], BULAN=["Januari","Februari","Maret","April","Mei","Juni","Juli","Agustus","September","Oktober","November","Desember"];
+const jkFmt = new Intl.DateTimeFormat("en-CA",{timeZone:"Asia/Jakarta",year:"numeric",month:"2-digit",day:"2-digit",hour:"2-digit",minute:"2-digit",second:"2-digit",hourCycle:"h23"});
+function jk(ms){ const p={}; jkFmt.formatToParts(new Date(ms)).forEach(x=>p[x.type]=x.value); return {y:+p.year,mo:+p.month,d:+p.day,h:+p.hour,mi:+p.minute,s:+p.second,key:`${p.year}-${p.month}-${p.day}`}; }
+const longDate = key => { const [y,m,d]=key.split("-").map(Number); return `${HARI[new Date(Date.UTC(y,m-1,d)).getUTCDay()]}, ${d} ${BULAN[m-1]} ${y}`; };
+const dur = min => `${Math.floor((min||0)/60)}j ${Math.round((min||0)%60)}m`;
+const mnt = v => { const t=Math.round(Number(v)||0), h=Math.floor(t/60), m=t%60; return h ? h+" jam"+(m?" "+m+" mnt":"") : m+" mnt"; };
+
+const S = { data:null, offset:0, mode:"kiosk", store: URL_TOKO || ls.get("konstra_unit") || "", search:"",
+  adminPin:null, sheetUrl:"", tab:"hari", day:null, dayStore:"all", dayData:null, recFrom:null, recTo:null, recStore:"all", recData:null,
+  wkStart:null, wkUnit:"all", wkData:null };
+const nowMs = () => Date.now() + S.offset;
+const storeName = id => ((S.data?.stores||[]).find(s=>s.id===id)||{}).name || id || "–";
+const shiftOf = id => (S.data?.shifts||[]).find(s=>s.id===id) || (S.data?.shifts||[])[0] || {name:"-",start:"",end:""};
+
+/* ---------- data ---------- */
+async function refresh(silent){
+  try{
+    const d = await call("getKioskData");
+    S.data=d; S.offset=d.now-Date.now();
+    $("#syncdot").className="dot on"; $("#synctxt").textContent="Tersambung";
+    if(!$("#modal").innerHTML) renderKiosk();
+  }catch(e){
+    $("#syncdot").className="dot off"; $("#synctxt").textContent="Gagal tersambung";
+    if(!silent) $("#banner").innerHTML=`<div class="notice">${esc(errMsg(e))}</div>`;
+  }
+}
+
+/* ---------- clock ---------- */
+let lastMin=-1;
+setInterval(()=>{
+  const t=jk(nowMs()), c=$("#bigclock");
+  if(c) c.innerHTML=`${pad2(t.h)}:${pad2(t.mi)}<span>:${pad2(t.s)}</span>`;
+  if(t.mi!==lastMin){ lastMin=t.mi; if(S.mode==="kiosk" && !$("#modal").innerHTML) renderKiosk(); }
+},1000);
+setInterval(()=>{ if(!$("#modal").innerHTML) refresh(true); }, 60000);
+document.addEventListener("visibilitychange",()=>{ if(!document.hidden) refresh(true); });
+try{ navigator.wakeLock && navigator.wakeLock.request("screen").catch(()=>{}); }catch(e){}
+
+/* ---------- kiosk ---------- */
+function pillFor(id){
+  const st=(S.data?.status||{})[id]||{action:"in"};
+  if(st.action==="in") return st.leave?`<span class="pill blue">${esc(st.leave)}</span>`:`<span class="pill">Belum absen</span>`;
+  if(st.action==="out") return `<span class="pill ${st.late>0?"warn":"ok"}">Masuk ${esc(st.inStr)}</span>`;
+  return `<span class="pill blue">Pulang ${esc(st.outStr)}</span>`;
+}
+function renderKiosk(){
+  const v=$("#kioskView"); if(S.mode!=="kiosk"){ v.hidden=true; return; } v.hidden=false;
+  if(!S.data){ v.innerHTML=`<div class="empty"><b>Memuat data dari Google Sheet…</b>Tunggu sebentar.</div>`; return; }
+  const t=jk(nowMs());
+  const all=S.data.employees, q=S.search.trim().toLowerCase();
+  const rank=e=>e.store===S.store?0:1;
+  const list=(q ? all.filter(e=>e.name.toLowerCase().includes(q)) : all.slice()).sort((a,b)=>rank(a)-rank(b)||String(a.store).localeCompare(String(b.store))||String(a.name).localeCompare(String(b.name)));
+  const here=all;
+  const done=here.filter(e=>((S.data.status[e.id]||{}).action||"in")!=="in").length;
+  const nm=t.h*60+t.mi;
+  const cur=S.data.shifts.find(s=>{const a=+s.start.slice(0,2)*60+ +s.start.slice(3), b=+s.end.slice(0,2)*60+ +s.end.slice(3); return a<b? nm>=a&&nm<b : nm>=a||nm<b;});
+  const keep=document.activeElement && document.activeElement.id==="q";
+  v.innerHTML=`<div class="kiosk">
+    <aside class="clockcard">
+      <div class="eyebrow">Jam server (WIB)</div>
+      <div class="bigclock" id="bigclock">${pad2(t.h)}:${pad2(t.mi)}<span>:${pad2(t.s)}</span></div>
+      <div class="today">${esc(longDate(t.key))}</div>
+      <button class="storebtn" id="pickStore"><span><span class="eyebrow" style="color:inherit;opacity:.75">Unit</span><b>${esc(S.store?storeName(S.store):"Semua unit")}</b></span><span aria-hidden="true">Ganti ›</span></button>
+      <div class="shiftnow">${cur?`Shift berjalan: <b>${esc(cur.name)}</b> ${cur.start}–${cur.end}`:"Di luar jam shift"}</div>
+      <div class="counts"><div><b>${done}</b>sudah absen</div><div><b>${Math.max(0,here.length-done)}</b>belum</div></div>
+    </aside>
+    <section class="picker">
+      <div class="pickhead">
+        <div><div class="eyebrow">Langkah 1 dari 3</div><h2>Ketuk nama kamu</h2></div>
+        <label class="search"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+        <input id="q" type="search" placeholder="Cari nama" value="${esc(S.search)}" aria-label="Cari nama karyawan"></label>
+      </div>
+      ${list.length?`<div class="grid">${list.map(e=>`<button class="emp" data-emp="${esc(e.id)}">
+        <div class="who"><div class="av">${esc(initials(e.name))}</div><div><div class="nm">${esc(e.name)}</div><div class="rl">${esc(e.role||"Karyawan")} · ${esc(storeName(e.store))}</div></div></div>
+        <div class="foot">${pillFor(e.id)}<span class="sub">${esc(shiftOf(e.shift).name)}</span></div></button>`).join("")}</div>`
+      :`<div class="empty"><b>${q?"Nama tidak ditemukan":"Belum ada karyawan"}</b>${q?"Coba ejaan lain.":"Tambahkan di Google Sheet, tab Karyawan."}</div>`}
+    </section></div>`;
+  $("#pickStore").onclick=chooseStore;
+  const qi=$("#q"); qi.oninput=()=>{S.search=qi.value; renderKiosk();};
+  if(keep){ qi.focus(); qi.setSelectionRange(qi.value.length,qi.value.length); }
+  v.querySelectorAll("[data-emp]").forEach(b=>b.onclick=()=>openFlow(b.dataset.emp));
+}
+function chooseStore(){
+  if(!S.data) return;
+  $("#modal").innerHTML=`<div class="scrim"><div class="sheet" role="dialog" aria-modal="true">
+    <h2 style="font-size:24px">Tampilkan unit mana di atas?</h2>
+    <p class="sub" style="margin:6px 0 16px">Cuma mengatur urutan nama di HP ini. Absen tetap tercatat di unit masing-masing karyawan.</p>
+    <div style="display:grid;gap:10px"><button class="btn" style="justify-content:space-between;padding:14px 16px" data-st=""><b>Semua unit</b><span class="sub">${S.data.employees.length} karyawan</span></button>${S.data.stores.map(s=>`<button class="btn" style="justify-content:space-between;padding:14px 16px" data-st="${esc(s.id)}"><b>${esc(s.name)}</b><span class="sub">${S.data.employees.filter(e=>e.store===s.id).length} karyawan</span></button>`).join("")}</div>
+    <button class="btn ghost" style="margin-top:12px;width:100%" id="stCancel">Batal</button></div></div>`;
+  $("#modal").querySelectorAll("[data-st]").forEach(b=>b.onclick=()=>{ S.store=b.dataset.st; ls.set("konstra_unit",S.store); $("#modal").innerHTML=""; renderKiosk(); });
+  const c=$("#stCancel"); if(c) c.onclick=()=>{$("#modal").innerHTML="";};
+}
+
+const flow={emp:null,pin:"",action:null,photo:null,timer:null,mode:"enter",newPin:"",me:null,report:"",leaveType:"Izin",leaveKet:""};
+function openFlow(id){
+  const emp=S.data.employees.find(e=>e.id===id); if(!emp) return;
+  Object.assign(flow,{emp,pin:"",photo:null,report:"",newPin:"",me:null,leaveType:"Izin",leaveKet:"",action:((S.data.status[id]||{}).action)||"in",mode:emp.hasPin?"enter":"new1"});
+  pinBuf=""; renderPin();
+}
+function closeFlow(){ clearInterval(flow.timer); $("#modal").innerHTML=""; renderKiosk(); }
+function sheet(html){
+  $("#modal").innerHTML=`<div class="scrim" id="scrim"><div class="sheet" role="dialog" aria-modal="true">${html}</div></div>`;
+  $("#scrim").onclick=e=>{ if(e.target.id==="scrim") closeFlow(); };
+  $("#modal").querySelectorAll("[data-close]").forEach(b=>b.onclick=closeFlow);
+}
+const head=(e,sub)=>`<div class="sheethead"><div class="av">${esc(initials(e.name))}</div><div><b>${esc(e.name)}</b><div class="sub">${esc(sub)}</div></div><button class="btn ghost sm x" data-close aria-label="Tutup">✕</button></div>`;
+const dots=n=>[0,1,2,3].map(i=>`<i class="${i<n?"f":""}"></i>`).join("");
+const PIN_TXT={enter:["Masukkan PIN kamu","PIN 4 angka"],new1:["Buat PIN kamu","Pilih 4 angka yang gampang kamu ingat. Jangan kasih tahu orang lain."],new2:["Ulangi PIN","Ketik lagi 4 angka yang sama"],chg1:["PIN baru","Ketik 4 angka PIN baru"],chg2:["Ulangi PIN baru","Ketik lagi PIN baru yang sama"]};
+let pinBuf="";
+function renderPin(msg){
+  const e=flow.emp, t=PIN_TXT[flow.mode], chg=flow.mode.indexOf("chg")===0;
+  sheet(`${head(e,`${e.role||"Karyawan"} · ${storeName(e.store)}`)}
+    ${flow.mode==="new1"?`<div class="notice info">Pertama kali pakai aplikasi ini? Buat PIN kamu sendiri dulu. PIN ini dipakai setiap absen.</div>`:""}
+    <h3 style="text-align:center;font-size:23px;margin:2px 0 4px">${t[0]}</h3>
+    <p class="sub" style="text-align:center;margin:0">${t[1]}</p>
+    <div class="pinrow" id="pinrow">${dots(0)}</div>
+    <div class="pad">${[1,2,3,4,5,6,7,8,9].map(n=>`<button data-k="${n}">${n}</button>`).join("")}<button class="fn" data-k="c">Hapus</button><button data-k="0">0</button>${chg?`<button class="fn" id="pinBack">Kembali</button>`:`<button class="fn" data-close>Batal</button>`}</div>
+    <div class="err" id="pinerr">${esc(msg||"")}</div>`);
+  $("#modal").querySelectorAll("[data-k]").forEach(b=>b.onclick=()=>pinKey(b.dataset.k));
+  const pb=$("#pinBack"); if(pb) pb.onclick=()=>{ flow.mode="enter"; renderMe(); };
+}
+async function pinKey(k){
+  if(k==="c") pinBuf=pinBuf.slice(0,-1); else if(pinBuf.length<4) pinBuf+=k;
+  $("#pinrow").innerHTML=dots(pinBuf.length);
+  if(pinBuf.length<4) return;
+  const p=pinBuf; pinBuf="";
+  const fail=msg=>{ const row=$("#pinrow"); row.classList.remove("shake"); void row.offsetWidth; row.classList.add("shake"); setTimeout(()=>row.innerHTML=dots(0),350); $("#pinerr").textContent=msg; };
+  if(flow.mode==="new1"||flow.mode==="chg1"){ flow.newPin=p; flow.mode=flow.mode==="new1"?"new2":"chg2"; return renderPin(); }
+  if(flow.mode==="new2"||flow.mode==="chg2"){
+    const isNew=flow.mode==="new2";
+    if(p!==flow.newPin){ flow.mode=isNew?"new1":"chg1"; flow.newPin=""; return renderPin("PIN tidak sama. Ulangi dari awal."); }
+    busy(true,"Menyimpan PIN…");
+    try{
+      if(isNew){ const r=await call("setPin",flow.emp.id,p); flow.emp.hasPin=true; flow.me=r; flow.action=r.action; }
+      else { await call("changePin",flow.emp.id,flow.pin,p); }
+      flow.pin=p; busy(false); toast(isNew?"PIN tersimpan. Ingat baik-baik ya.":"PIN berhasil diganti.");
+      flow.mode="enter"; renderMe();
+    }catch(e){ busy(false); flow.mode=isNew?"new1":"chg1"; flow.newPin=""; renderPin(errMsg(e)); }
+    return;
+  }
+  busy(true,"Cek PIN…");
+  try{
+    const r=await call("checkPin",flow.emp.id,p); busy(false);
+    if(r.needSetup){ flow.mode="new1"; return renderPin(); }
+    if(!r.ok) return fail(r.msg);
+    flow.pin=p; flow.me=r; flow.action=r.action; renderMe();
+  }catch(e){ busy(false); fail(errMsg(e)); }
+}
+function renderMe(){
+  const e=flow.emp, m=flow.me||{action:flow.action}, sh=shiftOf(e.shift);
+  const status = m.action==="in" ? (m.leave?`<span class="pill blue">${esc(m.leave)} hari ini</span>`:`<span class="pill">Belum absen hari ini</span>`)
+    : m.action==="out" ? `<span class="pill ${m.late>0?"warn":"ok"}">Masuk ${esc(m.inStr)}${m.late>0?` · telat ${mnt(m.late)}`:""}</span>`
+    : `<span class="pill blue">Masuk ${esc(m.inStr)} · Pulang ${esc(m.outStr||"–")}</span>`;
+  const main = m.action==="in"&&m.leave ? `<button class="btn bigact" disabled>Hari ini kamu ${esc(m.leave.toLowerCase())}</button>`
+    : m.action==="done" ? (m.outStr ? `<button class="btn bigact" disabled>Sudah absen pulang hari ini</button>`
+      : `<button class="btn bigact" disabled>Absen hari ini sudah ditutup</button><p class="sub" style="margin:8px 0 0">Lupa absen pulang? Lapor lewat menu <b>Izin / Sakit / Lupa absen</b>.</p>`)
+    : `<button class="btn ${m.action==="in"?"primary":"sun"} bigact" id="goClock">${m.action==="in"?"Absen masuk":"Absen pulang"}</button>`;
+  sheet(`${head(e,`${e.role||"Karyawan"} · ${storeName(e.store)}`)}
+    <div class="eyebrow">Absen saya</div>
+    <div class="mestat"><span class="sub">Jadwal ${esc(sh.name)} ${sh.start}–${sh.end}</span>${status}</div>
+    ${main}
+    <div class="megrid">
+      <button class="btn" id="goLeave">Izin / Sakit / Lupa absen</button>
+      ${LEMBUR_ON?`<button class="btn" id="goLem">Ajukan lembur</button>`:""}
+      <button class="btn" id="goHist">Riwayat saya</button>
+      <button class="btn" id="goPin">Ganti PIN</button>
+      <button class="btn ghost" ${LEMBUR_ON?`style="grid-column:1/-1"`:""} data-close>Keluar</button>
+    </div>`);
+  const gc=$("#goClock"); if(gc) gc.onclick=()=>{ flow.photo=null; flow.report=""; flow.tugas=""; renderPhoto(); };
+  const gt=$("#goTugas"); if(gt) gt.onclick=()=>{ flow.photo=null; flow.report=""; flow.tugas=""; renderTugas("",true); };
+  $("#goLeave").onclick=()=>renderLeave();
+  const gl=$("#goLem"); if(gl) gl.onclick=()=>renderLembur();
+  $("#goHist").onclick=()=>renderHistory();
+  $("#goPin").onclick=()=>{ flow.mode="chg1"; flow.newPin=""; pinBuf=""; renderPin(); };
+}
+function renderPhoto(){
+  const e=flow.emp, isIn=flow.action==="in", sh=shiftOf(e.shift);
+  sheet(`${head(e,`${isIn?"Absen masuk":"Absen pulang"}${flow.tugas?" · Tugas luar":` · ${sh.name} ${sh.start}–${sh.end}`}`)}
+    <p class="eyebrow" style="text-align:center;margin:0 0 10px">Selfie dulu</p>
+    <div class="cam">${flow.photo?`<img src="${flow.photo}" alt="Foto absen">`:`<div style="text-align:center;color:var(--muted);padding:16px"><svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 8h3l2-3h6l2 3h3v11H4z"/><circle cx="12" cy="13" r="4"/></svg><div style="font-size:13px;margin-top:6px">Ambil selfie dulu.<br>Wajah harus jelas.</div></div>`}</div>
+    <div style="display:flex;margin-bottom:12px"><button class="btn" style="flex:1" id="takePhoto">${flow.photo?"Foto ulang":"Ambil foto"}</button></div>
+    ${isIn?"":`<div class="field" style="margin-bottom:12px"><label for="rep">Laporan kerja hari ini</label><textarea id="rep" rows="4" placeholder="Contoh: input data penjualan, cek stok gudang, rapat dengan supplier">${esc(flow.report)}</textarea><span class="sub">Tulis singkat apa saja yang dikerjakan hari ini.</span></div>`}
+    <p class="sub" style="text-align:center;margin:0 0 10px">Aplikasi akan cek lokasi kamu. Kalau HP minta izin lokasi, tekan <b>Izinkan</b>.</p>
+    <button class="btn ${isIn?"primary":"sun"} bigact" id="doClock" ${flow.photo?"":"disabled"}>${isIn?"Absen masuk sekarang":"Absen pulang sekarang"}</button>
+    <button class="btn ghost" style="width:100%;margin-top:8px" id="backMe">Kembali</button>
+    <div class="err" id="clkerr"></div>`);
+  const rp=$("#rep"); if(rp) rp.oninput=()=>{ flow.report=rp.value; };
+  $("#takePhoto").onclick=()=>{ const i=$("#camInput"); i.value=""; i.click(); };
+  $("#doClock").onclick=submit;
+  $("#backMe").onclick=renderMe;
+}
+function renderTugas(dist,pre){
+  const e=flow.emp;
+  sheet(`${head(e,`${e.role||"Karyawan"} · ${storeName(e.store)}`)}
+    <div class="eyebrow">${pre?"Absen tugas luar":"Kamu di luar kantor"}</div>
+    <h3 style="font-size:22px;margin:6px 0 4px">${pre?"Mau tugas ke mana?":"Lagi tugas di luar?"}</h3>
+    <p class="sub" style="margin:0 0 14px">${pre?"Tulis keperluan tugas luar kamu, lalu lanjut selfie. Lokasi tetap dicatat.":`Lokasi kamu sekitar ${esc(dist)} m dari kantor. Tulis keperluan tugas luar kamu supaya absennya tercatat.`}</p>
+    <div class="field" style="margin-bottom:14px"><label for="tg">Keperluan tugas luar</label><textarea id="tg" rows="3" placeholder="Contoh: ketemu supplier di Tangerang, kembali ke kantor jam 14.00">${esc(flow.tugas||"")}</textarea></div>
+    <button class="btn ${flow.action==="in"?"primary":"sun"} bigact" id="tgSend">${pre?"Lanjut selfie":(flow.action==="in"?"Absen masuk (tugas luar)":"Absen pulang (tugas luar)")}</button>
+    <button class="btn ghost" style="width:100%;margin-top:8px" id="backMe">Batal</button>
+    <div class="err" id="tgerr"></div>`);
+  $("#backMe").onclick=renderMe;
+  $("#tgSend").onclick=()=>{ const t=$("#tg").value.trim(); if(!t){ $("#tgerr").textContent="Tulis keperluannya dulu."; return; } flow.tugas=t; if(pre) renderPhoto(); else submit(); };
+}
+const LEAVE=[["Izin","Ada keperluan, tidak masuk","Contoh: mengurus surat di kelurahan"],["Sakit","Tidak masuk karena sakit","Contoh: demam, sudah ke dokter"],["Lupa absen (lapor)","Sudah masuk / pulang tapi lupa absen","Contoh: masuk jam 09.05, lupa absen masuk"]];
+function renderLeave(){
+  const e=flow.emp, cur=LEAVE.find(x=>x[0]===flow.leaveType)||LEAVE[0];
+  sheet(`${head(e,`${e.role||"Karyawan"} · ${storeName(e.store)}`)}
+    <div class="eyebrow">Lapor izin, sakit, atau lupa absen</div>
+    <div class="choice">${LEAVE.map(([v,d])=>`<button class="btn ${flow.leaveType===v?"primary":""}" data-lt="${esc(v)}"><b>${esc(v.replace(" (lapor)",""))}</b><span>${esc(d)}</span></button>`).join("")}</div>
+    <div class="field" style="margin-bottom:14px"><label for="lk">Alasan / keterangan</label><textarea id="lk" rows="3" placeholder="${esc(cur[2])}">${esc(flow.leaveKet)}</textarea></div>
+    <button class="btn primary bigact" id="lSend">Kirim laporan</button>
+    <button class="btn ghost" style="width:100%;margin-top:8px" id="backMe">Kembali</button>
+    <div class="err" id="lerr"></div>`);
+  $("#modal").querySelectorAll("[data-lt]").forEach(b=>b.onclick=()=>{ flow.leaveKet=$("#lk").value; flow.leaveType=b.dataset.lt; renderLeave(); });
+  $("#lk").oninput=()=>{ flow.leaveKet=$("#lk").value; };
+  $("#backMe").onclick=renderMe;
+  $("#lSend").onclick=async()=>{
+    const ket=$("#lk").value.trim(); if(!ket){ $("#lerr").textContent="Tulis alasannya dulu."; return; }
+    busy(true,"Mengirim…");
+    try{
+      const r=await call("leave",flow.emp.id,flow.pin,flow.leaveType,ket); busy(false); refresh(true); flow.leaveKet=""; if(/^(Izin|Sakit)$/.test(r.jenis)&&flow.me&&flow.me.action==="in") flow.me.leave=r.jenis;
+      sheet(`<div class="receipt" role="status"><div class="c"><h3>PT KONSTRA NIAGA PRATAMA</h3><div>Laporan terkirim</div></div><hr>
+        <div class="c eyebrow">${esc(r.jenis.replace(" (lapor)",""))}</div><div class="c" style="font-size:18px;margin:6px 0">${esc(r.dateLong)} · ${esc(r.time)}</div><hr>
+        <div class="r"><span>Nama</span><span>${esc(flow.emp.name)}</span></div><div style="margin-top:8px">${esc(r.ket)}</div></div>
+        <button class="btn primary bigact" style="margin-top:18px" id="backMe">Kembali ke Absen saya</button>`);
+      $("#backMe").onclick=renderMe;
+    }catch(err){ busy(false); $("#lerr").textContent=errMsg(err); }
+  };
+}
+const LEMPILL={Menunggu:"warn",Disetujui:"ok",Ditolak:"bad"};
+const LEMBUR_ON=false; // fitur Ajukan lembur disembunyikan dulu (ubah ke true untuk menyalakan lagi)
+async function renderLembur(){
+  const e=flow.emp, sh=shiftOf(e.shift), today=jk(nowMs()).key, hd=head(e,`${e.role||"Karyawan"} · ${storeName(e.store)}`);
+  const f=flow.lem||(flow.lem={date:today,start:sh.end||"17:00",end:"",ket:""});
+  sheet(`${hd}<div class="eyebrow">Ajukan lembur</div>
+    <p class="sub" style="margin:2px 0 12px">Lembur dihitung kalau sudah disetujui admin. Ajukan setelah selesai lembur, paling lambat 7 hari.</p>
+    <div class="field" style="margin-bottom:10px"><label for="lmD">Tanggal lembur</label><input type="date" id="lmD" value="${esc(f.date)}" min="${addDays(today,-7)}" max="${today}"></div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px">
+      <div class="field"><label for="lmS">Jam mulai</label><input type="time" id="lmS" value="${esc(f.start)}"></div>
+      <div class="field"><label for="lmE">Jam selesai</label><input type="time" id="lmE" value="${esc(f.end)}"></div></div>
+    <div class="field" style="margin-bottom:14px"><label for="lmK">Keterangan</label><textarea id="lmK" rows="3" placeholder="Contoh: disuruh Bu ... rekap stok gudang">${esc(f.ket)}</textarea></div>
+    <button class="btn primary bigact" id="lmSend">Kirim pengajuan</button>
+    <button class="btn ghost" style="width:100%;margin-top:8px" id="backMe">Kembali</button>
+    <div class="err" id="lmErr"></div>
+    <div class="eyebrow" style="margin-top:18px">Pengajuan kamu</div><div id="lmMine"><div class="sub">Memuat…</div></div>`);
+  const keep=()=>{ f.date=$("#lmD").value; f.start=$("#lmS").value; f.end=$("#lmE").value; f.ket=$("#lmK").value; };
+  ["#lmD","#lmS","#lmE","#lmK"].forEach(q=>$(q).oninput=keep);
+  $("#backMe").onclick=renderMe;
+  $("#lmSend").onclick=async()=>{
+    keep();
+    if(!f.date||!f.start||!f.end){ $("#lmErr").textContent="Isi tanggal, jam mulai, dan jam selesai."; return; }
+    if(!f.ket.trim()){ $("#lmErr").textContent="Tulis keterangannya dulu."; return; }
+    busy(true,"Mengirim…");
+    try{
+      const r=await call("lemburSubmit",e.id,flow.pin,f.date,f.start,f.end,f.ket); busy(false); flow.lem=null;
+      sheet(`<div class="receipt" role="status"><div class="c"><h3>PT KONSTRA NIAGA PRATAMA</h3><div>Pengajuan lembur terkirim</div></div><hr>
+        <div class="c eyebrow">Menunggu persetujuan</div><div class="c" style="font-size:18px;margin:6px 0">${esc(r.dateLong)}</div><hr>
+        <div class="r"><span>Nama</span><span>${esc(e.name)}</span></div><div class="r"><span>Jam</span><span>${esc(r.start)}–${esc(r.end)} (${dur(r.min)})</span></div>
+        <div style="margin-top:8px">${esc(r.ket)}</div></div>
+        <button class="btn primary bigact" style="margin-top:18px" id="backMe">Kembali ke Absen saya</button>`);
+      $("#backMe").onclick=renderMe;
+    }catch(err){ busy(false); $("#lmErr").textContent=errMsg(err); }
+  };
+  try{
+    const mine=await call("lemburMine",e.id,flow.pin); const box=$("#lmMine"); if(!box) return;
+    box.innerHTML=mine.length?`<div class="histlist">${mine.map(x=>`<div class="hrow"><div><b>${esc(x.dateLong)}</b><div class="sub">${esc(x.start)}–${esc(x.end)} · ${dur(x.min)}${x.note?` · ${esc(x.note)}`:""}</div></div><span class="pill ${LEMPILL[x.status]||""}">${esc(x.status)}</span></div>`).join("")}</div>`
+      :`<div class="sub">Belum ada pengajuan.</div>`;
+  }catch(err){ const box=$("#lmMine"); if(box) box.innerHTML=`<div class="sub">${esc(errMsg(err))}</div>`; }
+}
+async function renderHistory(){
+  const e=flow.emp, hd=head(e,`${e.role||"Karyawan"} · ${storeName(e.store)}`);
+  sheet(`${hd}<div class="empty">Memuat riwayat…</div>`);
+  try{
+    const h=await call("myHistory",e.id,flow.pin);
+    sheet(`${hd}<div class="eyebrow">Riwayat saya</div><p class="sub" style="margin:2px 0 12px">Periode gaji ${esc(h.from)} – ${esc(h.to)}</p>
+      <div class="minikpi"><div><b>${h.hadir}</b><span>Hadir</span></div><div><b>${h.telat}</b><span>Telat</span></div><div><b>${h.izin}</b><span>Izin</span></div><div><b>${h.sakit}</b><span>Sakit</span></div></div>
+      ${h.rows.length?`<div class="histlist">${h.rows.map(r=>r.kind==="absen"
+        ?`<div class="hrow"><div><b>${esc(r.dateLong)}</b><div class="sub">Masuk ${esc(r.inStr)} · Pulang ${esc(r.outStr||"–")}</div></div><span class="pill ${r.late>0?"warn":"ok"}">${r.late>0?`Telat ${mnt(r.late)}`:"Tepat waktu"}</span></div>`
+        :`<div class="hrow"><div><b>${esc(r.dateLong)}</b><div class="sub">${esc(r.ket)}</div></div><span class="pill blue">${esc(r.jenis.replace(" (lapor)",""))}</span></div>`).join("")}</div>`
+      :`<div class="empty">Belum ada catatan di periode ini.</div>`}
+      <button class="btn ghost" style="width:100%;margin-top:12px" id="backMe">Kembali</button>`);
+    $("#backMe").onclick=renderMe;
+  }catch(err){ sheet(`${hd}<div class="err">${esc(errMsg(err))}</div><button class="btn" style="width:100%" id="backMe">Kembali</button>`); $("#backMe").onclick=renderMe; }
+}
+$("#camInput").addEventListener("change", async e=>{
+  const f=e.target.files && e.target.files[0]; if(!f) return;
+  try{ flow.photo=await shrink(f); renderPhoto(); }catch(err){ const el=$("#clkerr"); if(el) el.textContent="Foto tidak bisa dibaca. Coba lagi."; }
+});
+function shrink(file){
+  return new Promise((res,rej)=>{ const url=URL.createObjectURL(file), img=new Image();
+    img.onload=()=>{ const s=Math.min(img.width,img.height), N=360, cv=document.createElement("canvas"); cv.width=cv.height=N;
+      cv.getContext("2d").drawImage(img,(img.width-s)/2,(img.height-s)/2,s,s,0,0,N,N); URL.revokeObjectURL(url); res(cv.toDataURL("image/jpeg",0.7)); };
+    img.onerror=()=>{URL.revokeObjectURL(url); rej();}; img.src=url; });
+}
+function getLoc(){
+  return new Promise(res=>{
+    if(!navigator.geolocation) return res(null);
+    let done=false; const fin=v=>{ if(!done){ done=true; res(v); } };
+    setTimeout(()=>fin(null),12000);
+    try{ navigator.geolocation.getCurrentPosition(p=>fin({lat:p.coords.latitude,lng:p.coords.longitude,acc:Math.round(p.coords.accuracy||0)}),()=>fin(null),{enableHighAccuracy:true,timeout:11000,maximumAge:30000}); }catch(e){ fin(null); }
+  });
+}
+async function submit(){
+  busy(true,"Cek lokasi…");
+  const loc=await getLoc();
+  busy(true,"Menyimpan absen…");
+  try{
+    flow.loc=loc;
+    const r=await call("clock",flow.emp.id,flow.pin,S.store,flow.photo,flow.report||"",loc,flow.tugas||"");
+    busy(false); renderReceipt(r); refresh(true);
+  }catch(e){
+    busy(false);
+    const msg=errMsg(e);
+    if(msg.indexOf("NEED_TUGAS")===0) return renderTugas(msg.split("|")[1]);
+    const el=$("#clkerr"); if(el) el.textContent=msg; else { toast(msg); closeFlow(); }
+  }
+}
+function renderReceipt(r){
+  const isOut=r.action==="out"||(r.already&&r.outStr!=="–");
+  let st;
+  if(isOut) st = r.ot? `<span class="pill blue">Lembur ${dur(r.ot)}</span>` : r.early>0? `<span class="pill bad">Pulang cepat ${mnt(r.early)}</span>` : `<span class="pill ok">Sesuai jadwal</span>`;
+  else st = r.late>0? `<span class="pill warn">Telat ${mnt(r.late)}</span>` : `<span class="pill ok">Tepat waktu</span>`;
+  sheet(`<div class="receipt" role="status">
+      <div class="c"><h3>PT KONSTRA NIAGA PRATAMA</h3><div>${esc(r.store)}</div></div><hr>
+      <div class="c eyebrow">${r.already?"Sudah absen hari ini":isOut?"Absen pulang":"Absen masuk"}</div>
+      <div class="t">${esc(isOut?r.outStr:r.inStr)}</div>
+      <div class="c">${esc(r.dateLong)}</div><hr>
+      <div class="r"><span>Nama</span><span>${esc(r.name)}</span></div>
+      <div class="r"><span>Shift</span><span>${esc(r.shiftName)} ${esc(r.shiftTime)}</span></div>
+      <div class="r"><span>Masuk</span><span>${esc(r.inStr)}</span></div>
+      <div class="r"><span>Pulang</span><span>${esc(r.outStr)}</span></div>
+      ${isOut?`<div class="r"><span>Jam kerja</span><span>${dur(r.work)}</span></div>`:""}
+      ${r.geo?`<div class="r"><span>Lokasi</span><span>${esc(r.geo)}</span></div>`:""}
+      <hr><div class="c">${st}</div>
+      <div class="c sub" style="margin-top:10px">No. ${esc(r.no)}</div>
+    </div>
+    <button class="btn primary bigact" style="margin-top:18px" data-close>Selesai</button>
+    <div class="countdown" id="cd">Kembali otomatis dalam 6 detik</div>`);
+  let n=6; clearInterval(flow.timer);
+  flow.timer=setInterval(()=>{ n--; const cd=$("#cd"); if(cd) cd.textContent=`Kembali otomatis dalam ${n} detik`; if(n<=0) closeFlow(); },1000);
+}
+
+/* ---------- admin ---------- */
+let gate="";
+function renderAdmin(){
+  const v=$("#adminView"); if(S.mode!=="admin"){ v.hidden=true; return; } v.hidden=false;
+  if(!S.adminPin){
+    v.innerHTML=`<div class="gate"><div class="eyebrow">Khusus admin</div><h2>Masukkan PIN admin</h2><p>PIN admin diatur di Google Sheet, tab Pengaturan App.</p>
+      <div class="pinrow" id="gaterow">${dots(gate.length)}</div>
+      <div class="pad">${[1,2,3,4,5,6,7,8,9].map(n=>`<button data-g="${n}">${n}</button>`).join("")}<button class="fn" data-g="c">Hapus</button><button data-g="0">0</button><button class="fn" data-g="k">Kiosk</button></div>
+      <div class="err" id="gateerr"></div></div>`;
+    v.querySelectorAll("[data-g]").forEach(b=>b.onclick=async()=>{
+      const k=b.dataset.g; if(k==="k") return setMode("kiosk");
+      if(k==="c") gate=gate.slice(0,-1); else if(gate.length<4) gate+=k;
+      $("#gaterow").innerHTML=dots(gate.length);
+      if(gate.length<4) return;
+      const p=gate; gate=""; busy(true,"Cek PIN…");
+      try{ const r=await call("adminCheck",p); busy(false);
+        if(!r.ok){ $("#gaterow").innerHTML=dots(0); $("#gateerr").textContent="PIN admin salah."; return; }
+        S.adminPin=p; S.sheetUrl=r.sheetUrl; if(r.defaultPin) toast("PIN admin masih 1234. Ganti di tab Pengaturan App."); renderAdmin(); loadDay();
+      }catch(e){ busy(false); $("#gateerr").textContent=errMsg(e); }
+    });
+    return;
+  }
+  const t=jk(nowMs());
+  if(!S.day) S.day=t.key;
+  if(!S.recFrom){ S.recFrom=t.key.slice(0,8)+"01"; S.recTo=t.key; }
+  v.innerHTML=`<div class="tabs" role="tablist">
+      <button role="tab" aria-selected="${S.tab==="hari"}" data-tab="hari">Hari ini</button>
+      <button role="tab" aria-selected="${S.tab==="laporan"}" data-tab="laporan">Laporan mingguan</button>
+      <button role="tab" aria-selected="${S.tab==="rekap"}" data-tab="rekap">Rekap & gaji</button>
+      ${LEMBUR_ON?"":"<!--"}<button role="tab" aria-selected="${S.tab==="lembur"}" data-tab="lembur">Lembur${S.lemData&&S.lemData!=="loading"&&S.lemData.pending.length?` (${S.lemData.pending.length})`:""}</button>${LEMBUR_ON?"":"-->"}
+      <button role="tab" aria-selected="${S.tab==="pin"}" data-tab="pin">Karyawan & PIN</button>
+      <a class="btn sm" style="margin-left:auto" href="${esc(S.sheetUrl)}" target="_blank" rel="noopener">Buka Google Sheet ↗</a>
+      <button class="btn ghost sm" id="lock">Kunci</button></div><div id="tabBody"></div>`;
+  v.querySelectorAll("[data-tab]").forEach(b=>b.onclick=()=>{S.tab=b.dataset.tab; renderAdmin();});
+  $("#lock").onclick=()=>{S.adminPin=null; renderAdmin();};
+  ({hari:tabHari,laporan:tabLaporan,rekap:tabRekap,lembur:tabLembur,pin:tabPin})[S.tab]($("#tabBody"));
+}
+async function loadLem(){
+  S.lemData="loading"; renderAdmin();
+  try{ S.lemData=await call("adminLembur",S.adminPin); }catch(e){ S.lemData=null; toast(errMsg(e)); }
+  renderAdmin();
+}
+function tabLembur(el){
+  if(S.lemData===undefined){ loadLem(); return; }
+  const d=S.lemData && S.lemData!=="loading" ? S.lemData : null;
+  const card=(x,act)=>`<div class="pinrow2"><div style="min-width:0;flex:1 1 260px"><div class="namecell"><div class="av">${esc(initials(x.name))}</div><div><b>${esc(x.name)}</b><div class="sub">${esc(x.role)} · ${esc(x.unit)}</div></div></div>
+      <div style="margin-top:8px"><b>${esc(x.dateLong)}</b> · ${esc(x.start)}–${esc(x.end)} · <b>${dur(x.min)}</b></div><div class="sub" style="margin-top:4px">${esc(x.ket)}</div>${x.note?`<div class="sub" style="margin-top:4px">Catatan admin: ${esc(x.note)}</div>`:""}</div>
+      <div class="pinact">${act?(S.lemAsk===x.id?`<span class="sub">${S.lemAskOk?"Setujui":"Tolak"} lembur ${esc(x.name)}?</span><button class="btn sm" data-lno>Batal</button><button class="btn sm ${S.lemAskOk?"primary":""}" data-lyes>Ya, ${S.lemAskOk?"setujui":"tolak"}</button>`
+        :`<button class="btn sm" data-lt="${esc(x.id)}">Tolak</button><button class="btn sm primary" data-lok="${esc(x.id)}">Setujui</button>`)
+        :`<span class="pill ${LEMPILL[x.status]||""}">${esc(x.status)}</span><span class="sub">${esc(x.decidedAt)}</span>`}</div></div>`;
+  el.innerHTML=`<div class="toolbar"><span class="sub">Lembur hanya masuk rekap kalau disetujui di sini.</span><button class="btn" id="lRef" style="margin-left:auto">Muat ulang</button></div>
+    ${S.lemData==="loading"?`<div class="empty">Memuat pengajuan lembur…</div>`:!d?`<div class="empty"><b>Data belum dimuat</b>Tekan Muat ulang.</div>`:`
+    <div class="card"><div class="cardhead"><h3>Menunggu persetujuan</h3><span class="sub">${d.pending.length} pengajuan</span></div>
+      ${d.pending.length?`<div class="pinlist">${d.pending.map(x=>card(x,true)).join("")}</div>`:`<div class="pad16"><div class="empty"><b>Tidak ada pengajuan baru</b>Karyawan mengajukan lewat Absen saya → Ajukan lembur.</div></div>`}</div>
+    <div class="card" style="margin-top:16px"><div class="cardhead"><h3>Sudah diputuskan</h3><span class="sub">${d.done.length} terakhir</span></div>
+      ${d.done.length?`<div class="pinlist">${d.done.map(x=>card(x,false)).join("")}</div>`:`<div class="pad16"><div class="empty">Belum ada.</div></div>`}</div>`}`;
+  $("#lRef").onclick=loadLem;
+  el.querySelectorAll("[data-lok]").forEach(b=>b.onclick=()=>{S.lemAsk=b.dataset.lok; S.lemAskOk=true; renderAdmin();});
+  el.querySelectorAll("[data-lt]").forEach(b=>b.onclick=()=>{S.lemAsk=b.dataset.lt; S.lemAskOk=false; renderAdmin();});
+  const no=el.querySelector("[data-lno]"); if(no) no.onclick=()=>{S.lemAsk=null; renderAdmin();};
+  const yes=el.querySelector("[data-lyes]"); if(yes) yes.onclick=async()=>{
+    const id=S.lemAsk, ok=S.lemAskOk; busy(true,"Menyimpan…");
+    try{ const r=await call("adminLemburDecide",S.adminPin,id,ok,""); busy(false); S.lemAsk=null; toast(`Lembur ${r.name} ${r.status.toLowerCase()}.`); loadLem(); }
+    catch(e){ busy(false); toast(errMsg(e)); }
+  };
+}
+async function loadEmps(){
+  S.empData="loading"; renderAdmin();
+  try{ S.empData=await call("adminEmps",S.adminPin); }catch(e){ S.empData=null; toast(errMsg(e)); }
+  renderAdmin();
+}
+function tabPin(el){
+  if(S.empData===undefined){ loadEmps(); return; }
+  const d=Array.isArray(S.empData)?S.empData:null;
+  el.innerHTML=`<div class="toolbar"><span class="sub">Karyawan lupa PIN? Tekan <b>Reset PIN</b>. Saat absen berikutnya, dia langsung diminta buat PIN baru.</span>
+      <button class="btn" id="eRef" style="margin-left:auto">Muat ulang</button></div>
+    ${S.empData==="loading"?`<div class="empty">Memuat daftar karyawan…</div>`:!d?`<div class="empty"><b>Data belum dimuat</b>Tekan Muat ulang.</div>`:`
+    <div class="card"><div class="cardhead"><h3>Karyawan aktif</h3><span class="sub">${d.length} orang</span></div>
+      <div class="pinlist">${d.map(e=>`<div class="pinrow2"><div class="namecell"><div class="av">${esc(initials(e.name))}</div><div><b>${esc(e.name)}</b><div class="sub">${esc(e.role)} · ${esc(e.unit)}</div></div></div>
+        <div class="pinact"><span class="pill ${e.hasPin?"ok":""}">${e.hasPin?"PIN sudah dibuat":"PIN belum dibuat"}</span>
+        ${S.pinAsk===e.id?`<div class="confirmbar">Reset PIN ${esc(e.name.split(" ")[0])}?<button class="btn sm" data-rno>Batal</button><button class="btn primary sm" data-ryes="${esc(e.id)}">Ya, reset</button></div>`
+          :e.hasPin?`<button class="btn sm" data-rp="${esc(e.id)}">Reset PIN</button>`:`<span class="sub">Buat sendiri saat absen</span>`}</div></div>`).join("")}</div></div>`}`;
+  $("#eRef").onclick=()=>{ S.pinAsk=null; loadEmps(); };
+  el.querySelectorAll("[data-rp]").forEach(b=>b.onclick=()=>{ S.pinAsk=b.dataset.rp; tabPin(el); });
+  el.querySelectorAll("[data-rno]").forEach(b=>b.onclick=()=>{ S.pinAsk=null; tabPin(el); });
+  el.querySelectorAll("[data-ryes]").forEach(b=>b.onclick=async()=>{
+    busy(true,"Reset PIN…");
+    try{ const r=await call("adminResetPin",S.adminPin,b.dataset.ryes); busy(false);
+      S.pinAsk=null; toast(`PIN ${r.name} sudah di-reset. Minta dia buat PIN baru saat absen.`);
+      const emp=(S.data?.employees||[]).find(x=>x.id===b.dataset.ryes); if(emp) emp.hasPin=false;
+      loadEmps();
+    }catch(e){ busy(false); toast(errMsg(e)); }
+  });
+}
+const storeSel=(id,val)=>`<select id="${id}"><option value="all">Semua unit</option>${(S.data?.stores||[]).map(s=>`<option value="${esc(s.id)}" ${val===s.id?"selected":""}>${esc(s.name)}</option>`).join("")}</select>`;
+async function loadDay(){
+  S.dayData="loading"; renderAdmin();
+  try{ S.dayData=await call("adminDay",S.adminPin,S.day,S.dayStore); }catch(e){ S.dayData=null; toast(errMsg(e)); }
+  renderAdmin();
+}
+function tabHari(el){
+  const d=S.dayData && S.dayData!=="loading" ? S.dayData : null;
+  const late=d?d.rows.filter(r=>r.late>0).length:0, out=d?d.rows.filter(r=>r.outStr&&!r.auto).length:0, lupa=d?d.rows.filter(r=>r.auto).length:0;
+  el.innerHTML=`<div class="toolbar">
+      <div class="field"><label for="dDay">Tanggal</label><input type="date" id="dDay" value="${S.day}"></div>
+      <div class="field"><label for="dStore">Unit</label>${storeSel("dStore",S.dayStore)}</div>
+      <button class="btn" id="dRef">Muat ulang</button>
+      <span class="sub" style="margin-left:auto">${esc(longDate(S.day))}</span></div>
+    ${S.dayData==="loading"?`<div class="empty">Memuat dari Google Sheet…</div>`:!d?`<div class="empty"><b>Data belum dimuat</b>Tekan Muat ulang.</div>`:`
+    ${d.holiday?`<div class="notice info" style="margin-bottom:14px"><b>Tanggal merah: ${esc(d.holiday)}.</b> Yang masuk hari ini tercatat "Masuk hari libur".</div>`:""}
+    <div class="kpis">
+      <div class="kpi ok"><span class="eyebrow">Hadir</span><b>${d.rows.length}</b><span class="sub">dari ${d.total} karyawan</span></div>
+      <div class="kpi warn"><span class="eyebrow">Telat</span><b>${late}</b><span class="sub">di atas toleransi</span></div>
+      <div class="kpi bad"><span class="eyebrow">Belum absen</span><b>${d.absent.length}</b><span class="sub">tidak ada catatan</span></div>
+      <div class="kpi"><span class="eyebrow">Sudah pulang</span><b>${out}</b><span class="sub">${lupa?`${lupa} lupa absen pulang`:"absen pulang tercatat"}</span></div></div>
+    <div class="card"><div class="cardhead"><h3>Catatan absen</h3><div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap"><span class="sub">Ketuk tombol foto untuk melihat selfie</span><button class="btn sm" id="cpDay">Salin laporan harian</button></div></div>
+      ${d.rows.length?`<div class="tbl"><table><thead><tr><th>Karyawan</th><th>Unit</th><th>Shift</th><th class="num">Masuk</th><th class="num">Pulang</th><th>Foto</th><th>Status</th><th></th></tr></thead><tbody>
+      ${d.rows.map(r=>`<tr><td><div class="namecell"><div class="av">${esc(initials(r.name))}</div><div><b>${esc(r.name)}</b><div class="sub">${esc(r.role)}</div></div></div></td>
+        <td>${esc(r.store)}</td><td>${esc(r.shiftName)} <span class="sub mono">${esc(r.shiftTime)}</span></td>
+        <td class="num">${esc(r.inStr)}</td><td class="num">${r.auto?`<span class="pill bad" title="Pulang diisi otomatis ${esc(r.outStr)} (jam selesai shift)">Lupa absen</span>`:esc(r.outStr||"–")}</td>
+        <td>${r.pIn?`<button class="btn sm" data-ph="${esc(r.pIn)}" data-lb="${esc(r.name)} · masuk ${esc(r.inStr)}">Masuk</button>`:""} ${r.pOut?`<button class="btn sm" data-ph="${esc(r.pOut)}" data-lb="${esc(r.name)} · pulang ${esc(r.outStr)}">Pulang</button>`:""}</td>
+        <td><span class="pill ${r.auto?"bad":r.late>0?"warn":"ok"}">${esc(r.status||"Tepat waktu")}</span></td>
+        <td><button class="btn sm" data-fx="${esc(r.empId)}" data-nm="${esc(r.name)}" data-in="${esc(r.inStr)}" data-out="${esc(r.auto?"":r.outStr)}">Koreksi</button></td></tr>`).join("")}</tbody></table></div>`
+      :`<div class="pad16"><div class="empty"><b>Belum ada absen di tanggal ini</b>Absen dari HP karyawan muncul setelah Muat ulang.</div></div>`}</div>
+    ${d.absent.length?`<div class="card"><div class="cardhead"><h3>Belum absen</h3><span class="sub">${d.absent.length} orang</span></div><div class="tbl"><table><thead><tr><th>Karyawan</th><th>Unit</th><th>Shift</th><th></th></tr></thead><tbody>
+      ${d.absent.map(a=>`<tr><td><div class="namecell"><div class="av">${esc(initials(a.name))}</div><b>${esc(a.name)}</b>${a.leave?` <span class="pill blue">${esc(a.leave)}</span>`:""}</div></td><td>${esc(a.store)}</td><td>${esc(a.shift)}</td>
+        <td>${a.leave?"":`<button class="btn sm" data-fx="${esc(a.empId)}" data-nm="${esc(a.name)}" data-in="" data-out="">Isi absen</button>`}</td></tr>`).join("")}</tbody></table></div></div>`:""}
+    ${(d.reports||[]).length?`<div class="card"><div class="cardhead"><h3>Laporan izin, sakit, lupa absen</h3><span class="sub">${d.reports.length} laporan</span></div><div class="pinlist">
+      ${d.reports.map(x=>`<div class="pinrow2"><div style="min-width:0;flex:1 1 240px"><div class="namecell"><div class="av">${esc(initials(x.name))}</div><div><b>${esc(x.name)}</b> <span class="pill ${x.jenis==="Lupa absen"?"warn":"blue"}">${esc(x.jenis)}</span><div class="sub" style="margin-top:4px">${esc(x.ket)}</div></div></div></div>
+        ${x.jenis==="Lupa absen"?`<div class="pinact"><button class="btn sm primary" data-fx="${esc(x.empId)}" data-nm="${esc(x.name)}" data-in="${esc((d.rows.find(r=>r.empId===x.empId)||{}).inStr||"")}" data-out="" data-ket="${esc(x.ket)}">Isi jam</button></div>`:""}</div>`).join("")}</div></div>`:""}`}`;
+  $("#dDay").onchange=e=>{S.day=e.target.value||jk(nowMs()).key; loadDay();};
+  $("#dStore").onchange=e=>{S.dayStore=e.target.value; loadDay();};
+  $("#dRef").onclick=loadDay;
+  const cpd=$("#cpDay"); if(cpd&&d) cpd.onclick=()=>{
+    const L=["*Laporan Absensi PT Konstra Niaga Pratama*",longDate(S.day)+(S.dayStore!=="all"?" · "+storeName(S.dayStore):""),"","Hadir: "+d.rows.length+" dari "+d.total+" karyawan","Telat: "+late+" orang","Sudah pulang: "+out];
+    if(d.rows.length){ L.push("","*Masuk:*"); d.rows.forEach(r=>L.push("- "+r.name+" "+r.inStr+(r.auto?" (lupa absen pulang)":r.outStr?"–"+r.outStr:"")+(r.late>0?" (telat "+mnt(r.late)+")":""))); }
+    if(d.absent.length){ L.push("","*Belum absen:*"); d.absent.forEach(a=>L.push("- "+a.name)); }
+    copyText(L.join("\n"),"Laporan harian disalin. Tinggal tempel di WhatsApp.");
+  };
+  el.querySelectorAll("[data-fx]").forEach(b=>b.onclick=()=>openFix(b.dataset));
+  el.querySelectorAll("[data-ph]").forEach(b=>b.onclick=async()=>{
+    busy(true,"Memuat foto…");
+    try{ const src=await call("adminPhoto",S.adminPin,b.dataset.ph); busy(false);
+      $("#modal").innerHTML=`<div class="scrim" id="scrim"><div class="sheet"><div class="sheethead"><b>${esc(b.dataset.lb)}</b><button class="btn ghost sm x" id="pc">✕</button></div><img class="bigphoto" src="${src}" alt="Foto absen"></div></div>`;
+      const close=()=>$("#modal").innerHTML=""; $("#pc").onclick=close; $("#scrim").onclick=e=>{if(e.target.id==="scrim")close();};
+    }catch(e){ busy(false); toast(errMsg(e)); }
+  });
+}
+function openFix(ds){
+  $("#modal").innerHTML=`<div class="scrim" id="scrim"><div class="sheet" role="dialog" aria-modal="true">
+    <div class="sheethead"><div class="av">${esc(initials(ds.nm))}</div><div><b>${esc(ds.nm)}</b><div class="sub">${esc(longDate(S.day))}</div></div><button class="btn ghost sm x" id="fxX" aria-label="Tutup">✕</button></div>
+    <div class="eyebrow">${ds.in?"Koreksi absen":"Isi absen"}</div>
+    ${ds.ket?`<div class="notice info">Laporan karyawan: ${esc(ds.ket)}</div>`:""}
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:10px 0">
+      <div class="field"><label for="fxIn">Jam masuk</label><input type="time" id="fxIn" value="${esc(ds.in||"")}"></div>
+      <div class="field"><label for="fxOut">Jam pulang</label><input type="time" id="fxOut" value="${esc(ds.out||"")}"></div></div>
+    <div class="field" style="margin-bottom:14px"><label for="fxNote">Catatan (opsional)</label><input type="text" id="fxNote" placeholder="Contoh: lupa absen, sudah konfirmasi" value="${esc(ds.ket?"Dari laporan lupa absen":"")}"></div>
+    <button class="btn primary bigact" id="fxSave">Simpan</button>
+    <button class="btn ghost" style="width:100%;margin-top:8px" id="fxCancel">Batal</button>
+    <div class="err" id="fxErr"></div></div></div>`;
+  const close=()=>$("#modal").innerHTML="";
+  $("#fxX").onclick=close; $("#fxCancel").onclick=close; $("#scrim").onclick=e=>{if(e.target.id==="scrim")close();};
+  $("#fxSave").onclick=async()=>{
+    const i=$("#fxIn").value, o=$("#fxOut").value, n=$("#fxNote").value;
+    if(!i&&!o){ $("#fxErr").textContent="Isi jam masuk atau jam pulang."; return; }
+    busy(true,"Menyimpan…");
+    try{ const r=await call("adminFixAbsen",S.adminPin,S.day,ds.fx,i,o,n); busy(false); close(); toast(`Absen ${r.name} disimpan.`); loadDay(); }
+    catch(e){ busy(false); $("#fxErr").textContent=errMsg(e); }
+  };
+}
+async function loadRekap(){
+  if(S.recFrom>S.recTo) return toast("Tanggal awal harus sebelum tanggal akhir");
+  S.recData="loading"; renderAdmin();
+  try{ S.recData=await call("adminRekap",S.adminPin,S.recFrom,S.recTo,S.recStore); }catch(e){ S.recData=null; toast(errMsg(e)); }
+  renderAdmin();
+}
+function tabRekap(el){
+  const d=S.recData && S.recData!=="loading" ? S.recData : null;
+  el.innerHTML=`<div class="toolbar">
+      <div class="field"><label for="rFrom">Dari</label><input type="date" id="rFrom" value="${S.recFrom}"></div>
+      <div class="field"><label for="rTo">Sampai</label><input type="date" id="rTo" value="${S.recTo}"></div>
+      <div class="field"><label for="rStore">Unit</label>${storeSel("rStore",S.recStore)}</div>
+      <button class="btn primary" id="rGo">Tampilkan rekap</button></div>
+    ${S.recData==="loading"?`<div class="empty">Menghitung rekap…</div>`:!d?`<div class="empty"><b>Pilih periode lalu tekan "Tampilkan rekap"</b>Biasanya per periode gaji, misalnya tanggal 1 sampai akhir bulan.</div>`:`
+    <div class="kpis">
+      <div class="kpi"><span class="eyebrow">Total hari hadir</span><b>${d.total.days}</b><span class="sub">semua karyawan</span></div>
+      <div class="kpi warn"><span class="eyebrow">Kejadian telat</span><b>${d.total.late}</b><span class="sub">${d.total.lateMin} menit total</span></div>
+      <div class="kpi"><span class="eyebrow">Jam kerja</span><b>${Math.round(d.total.work/60)}</b><span class="sub">jam tercatat</span></div>
+      ${d.otOn?`<div class="kpi ok"><span class="eyebrow">Lembur</span><b>${(d.total.ot/60).toFixed(1)}</b><span class="sub">jam, yang disetujui</span></div>`:`<div class="kpi"><span class="eyebrow">Masuk hari libur</span><b>${d.total.hol||0}</b><span class="sub">hari, semua karyawan</span></div>`}</div>
+    <div class="card"><div class="cardhead"><h3>Rekap per karyawan</h3><button class="btn sm" id="cp">Salin ke clipboard</button></div>
+      <div class="tbl"><table><thead><tr><th>Karyawan</th><th>Unit</th><th class="num">Hadir</th><th class="num">Izin</th><th class="num">Sakit</th><th class="num">Alpa</th><th class="num">Telat</th><th class="num">Menit telat</th><th class="num">Pulang cepat</th><th class="num">Lupa pulang</th><th class="num">Masuk hari libur</th><th class="num">Jam kerja</th>${d.otOn?`<th class="num">Lembur</th>`:""}</tr></thead><tbody>
+      ${d.rows.map(b=>`<tr><td><div class="namecell"><div class="av">${esc(initials(b.name))}</div><div><b>${esc(b.name)}</b><div class="sub">${esc(b.role)}</div></div></div></td><td>${esc(b.store)}</td>
+        <td class="num">${b.days}</td><td class="num">${b.izin||0}</td><td class="num">${b.sakit||0}</td><td class="num">${b.alpa?`<span class="pill bad">${b.alpa}</span>`:"0"}</td><td class="num">${b.late?`<span class="pill warn">${b.late}x</span>`:"0"}</td><td class="num">${b.lateMin}</td><td class="num">${b.early}</td>
+        <td class="num">${b.open?`<span class="pill bad">${b.open}</span>`:"0"}</td><td class="num">${b.hol?`<span class="pill blue">${b.hol} hari</span>`:"0"}</td><td class="num">${dur(b.work)}</td>${d.otOn?`<td class="num">${dur(b.ot)}</td>`:""}</tr>`).join("")}
+      </tbody></table></div></div>
+    <p class="sub" style="margin-top:12px">Rekap bulanan periode gaji juga otomatis ada di Google Sheet, tab Bulanan.</p>`}`;
+  $("#rFrom").onchange=e=>S.recFrom=e.target.value;
+  $("#rTo").onchange=e=>S.recTo=e.target.value;
+  $("#rStore").onchange=e=>S.recStore=e.target.value;
+  $("#rGo").onclick=loadRekap;
+  const cp=$("#cp"); if(cp) cp.onclick=async()=>{
+    const rows=[["Nama","Jabatan","Unit","Hari hadir","Izin","Sakit","Alpa","Kali telat","Menit telat","Pulang cepat","Lupa pulang","Masuk hari libur","Jam kerja"].concat(d.otOn?["Lembur (jam)"]:[]),...d.rows.map(b=>[b.name,b.role,b.store,b.days,b.izin||0,b.sakit||0,b.alpa||0,b.late,b.lateMin,b.early,b.open,b.hol||0,(b.work/60).toFixed(1)].concat(d.otOn?[(b.ot/60).toFixed(1)]:[]))];
+    try{ await navigator.clipboard.writeText(rows.map(r=>r.join("\t")).join("\n")); toast("Disalin. Tempel ke Google Sheets."); }catch(e){ toast("Tidak bisa menyalin otomatis"); }
+  };
+}
+
+
+/* ---------- laporan mingguan ---------- */
+const HARI3=["Min","Sen","Sel","Rab","Kam","Jum","Sab"];
+const shortDate=k=>{const [y,m,d]=k.split("-").map(Number); return d+" "+BULAN[m-1].slice(0,3);};
+const addDays=(k,n)=>{const [y,m,d]=k.split("-").map(Number); const t=new Date(Date.UTC(y,m-1,d+n)); return t.toISOString().slice(0,10);};
+const mondayOf=k=>{const [y,m,d]=k.split("-").map(Number); const w=new Date(Date.UTC(y,m-1,d)).getUTCDay(); return addDays(k,-((w+6)%7));};
+const weekLabel=s=>shortDate(s)+" – "+shortDate(addDays(s,6))+" "+addDays(s,6).slice(0,4);
+async function copyText(t,msg){ try{ await navigator.clipboard.writeText(t); toast(msg); }catch(e){
+  $("#modal").innerHTML=`<div class="scrim" id="scrim"><div class="sheet"><div class="sheethead"><b>Salin manual</b><button class="btn ghost sm x" id="pc">✕</button></div><p class="sub" style="margin:0 0 10px">Tekan lama teks di bawah, pilih Salin, lalu tempel di WhatsApp.</p><textarea id="cpbox" style="width:100%;min-height:240px;border:1px solid var(--line-strong);border-radius:8px;padding:10px;font:inherit;font-size:13px;background:var(--bg);color:var(--fg)">${esc(t)}</textarea></div></div>`;
+  const close=()=>$("#modal").innerHTML=""; $("#pc").onclick=close; $("#scrim").onclick=e=>{if(e.target.id==="scrim")close();}; const b=$("#cpbox"); b.focus(); b.select(); } }
+async function loadWeek(){
+  S.wkData="loading"; renderAdmin();
+  try{ S.wkData=await call("adminWeek",S.adminPin,S.wkStart,S.wkUnit); }catch(e){ S.wkData=null; toast(errMsg(e)); }
+  renderAdmin();
+}
+function weekText(R){
+  const ic={ok:"🟢",warn:"🟠",bad:"🔴","":"⚪"};
+  const L=["*Laporan Absensi Mingguan PT Konstra Niaga Pratama*","Minggu "+weekLabel(R.start)+(R.unitName?" · "+R.unitName:""),"","Kehadiran: "+(R.tot.pct===null?"–":R.tot.pct+"%"),"Hadir: "+R.tot.hadir+" hari kerja","Telat: "+R.tot.late+"x ("+mnt(R.tot.lateMin)+")","Lupa absen pulang: "+R.tot.open+"x","","*Per karyawan:*"];
+  R.people.forEach(p=>L.push(ic[p.note.cls]+" "+p.name+" ("+(p.role||"-")+"): hadir "+p.hadir+"/"+p.expected+", telat "+p.late+"x"+(p.open?", lupa pulang "+p.open+"x":"")));
+  const att=R.people.filter(p=>p.note.cls==="bad"||p.note.cls==="warn");
+  if(att.length){ L.push("","*Perlu perhatian:*"); att.forEach(p=>L.push("- "+p.name+": "+p.why.join(", "))); }
+  return L.join("\n");
+}
+function tabLaporan(el){
+  const thisMon=mondayOf(jk(nowMs()).key);
+  if(!S.wkStart) S.wkStart=thisMon;
+  const R=S.wkData&&S.wkData!=="loading"&&S.wkData.start===S.wkStart?S.wkData:null;
+  if(!R && S.wkData!=="loading"){ loadWeek(); return; }
+  const thisWeek=S.wkStart===thisMon;
+  el.innerHTML=`<div class="toolbar" style="justify-content:space-between">
+      <div class="wknav"><button class="btn sm" id="wPrev" aria-label="Minggu sebelumnya">‹</button><span class="range">${esc(weekLabel(S.wkStart))}</span><button class="btn sm" id="wNext" aria-label="Minggu berikutnya" ${thisWeek?"disabled":""}>›</button>
+        ${thisWeek?`<span class="pill blue">Minggu ini</span>`:`<button class="btn sm ghost" id="wNow">Ke minggu ini</button>`}
+        <label class="sr-only" for="wUnit">Unit</label>${storeSel("wUnit",S.wkUnit)}</div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn sm primary" id="wCopy" ${R?"":"disabled"}>Salin laporan (WA)</button><button class="btn sm" id="wRef">Muat ulang</button></div></div>
+    ${!R?`<div class="empty">Memuat laporan dari Google Sheet…</div>`:(()=>{ const max=Math.max(1,R.emps,...R.perDay.map(d=>d.total)); const att=R.people.filter(p=>p.note.cls==="bad"||p.note.cls==="warn"); return `
+    <div class="kpis five">
+      <div class="kpi ok"><span class="eyebrow">Kehadiran</span><b>${R.tot.pct===null?"–":R.tot.pct+"%"}</b><div class="meter"><i style="width:${R.tot.pct||0}%"></i></div></div>
+      <div class="kpi"><span class="eyebrow">Hadir</span><b>${R.tot.hadir}</b><span class="sub">dari ${R.tot.exp} hari kerja</span></div>
+      <div class="kpi warn"><span class="eyebrow">Telat</span><b>${R.tot.late}</b><span class="sub">total ${R.tot.lateMin} menit</span></div>
+      <div class="kpi bad"><span class="eyebrow">Lupa absen pulang</span><b>${R.tot.open}</b><span class="sub">masuk tanpa pulang</span></div>
+      <div class="kpi"><span class="eyebrow">Jam kerja</span><b>${Math.round(R.tot.work/60)}</b><span class="sub">jam tercatat</span></div></div>
+    <div class="card"><div class="cardhead"><h3>Kehadiran per hari</h3><span class="sub">${R.emps} karyawan aktif</span></div>
+      <div class="chart">${R.perDay.map(d=>`<div class="col ${d.off&&!d.total?"off":""} ${d.today?"today":""}"><span class="val">${d.future?"":d.total}</span>
+        <div class="track" title="${esc(HARI[d.dow]+" "+shortDate(d.k)+(d.hol?" (libur: "+d.hol+")":"")+": "+d.ok+" tepat waktu, "+d.late+" telat")}"><div class="s-ok" style="height:${d.ok/max*100}%"></div><div class="s-late" style="height:${d.late/max*100}%"></div></div>
+        <span class="lbl">${HARI3[d.dow]}<br>${shortDate(d.k)}</span></div>`).join("")}</div>
+      <div class="legend"><span><i class="ok"></i>Tepat waktu</span><span><i class="late"></i>Telat</span><span>Hari kerja: ${R.workDays.map(n=>HARI3[n]).join(", ")}</span></div></div>
+    <div class="card"><div class="cardhead"><h3>Per karyawan</h3><span class="sub">Kotak = Senin sampai Minggu</span></div>
+      ${R.people.length?`<div class="tbl"><table><thead><tr><th>Karyawan</th><th>Minggu ini</th><th class="num">Hadir</th><th class="num">Telat</th><th class="num">Menit telat</th><th class="num">Lupa pulang</th><th class="num">Jam kerja</th><th class="num">Kehadiran</th><th>Catatan</th></tr></thead><tbody>
+      ${R.people.map(p=>`<tr><td><div class="namecell"><div class="av">${esc(initials(p.name))}</div><div><b>${esc(p.name)}</b><div class="sub">${esc(p.role)} · ${esc(p.unit)}</div></div></div></td>
+        <td><div class="dots">${p.marks.map(x=>`<i class="${x.st}" title="${esc(x.tip)}"></i>`).join("")}</div></td>
+        <td class="num">${p.hadir}/${p.expected}</td><td class="num">${p.late?`<span class="pill warn">${p.late}x</span>`:"0"}</td><td class="num">${p.lateMin}</td>
+        <td class="num">${p.open?`<span class="pill bad">${p.open}</span>`:"0"}</td><td class="num">${dur(p.work)}</td><td class="num">${p.pct===null?"–":p.pct+"%"}</td>
+        <td><span class="pill ${p.note.cls}">${esc(p.note.txt)}</span></td></tr>`).join("")}</tbody></table></div>
+      <div class="legend" style="padding-top:12px"><span><i class="ok"></i>Hadir tepat waktu</span><span><i class="late"></i>Telat</span><span><i class="absent"></i>Tidak absen</span><span><i class="pending"></i>Belum absen hari ini</span><span><i class="off"></i>Libur / belum lewat</span></div>`
+      :`<div class="pad16"><div class="empty"><b>Belum ada karyawan aktif</b>Tambahkan di Google Sheet, tab Karyawan.</div></div>`}</div>
+    <div class="card"><div class="cardhead"><h3>Perlu perhatian</h3><span class="sub">${att.length} orang</span></div>
+      ${att.length?`<div class="attn">${att.map(p=>`<div class="row"><div class="av">${esc(initials(p.name))}</div><div style="flex:1;min-width:0"><b>${esc(p.name)}</b><div class="sub">${esc(p.why.join(" · "))}</div></div><span class="pill ${p.note.cls}">${esc(p.note.txt)}</span></div>`).join("")}</div>`:`<div class="pad16 sub">Aman, nggak ada yang perlu ditegur minggu ini.</div>`}</div>
+    <p class="sub" style="margin-top:12px">Kehadiran = hari hadir dibagi hari kerja yang sudah lewat. Hari kerja diatur di Google Sheet, tab Pengaturan App (hari_kerja).</p>`; })()}`;
+  const go=k=>{ S.wkStart=k; S.wkData=null; renderAdmin(); };
+  $("#wPrev").onclick=()=>go(addDays(S.wkStart,-7));
+  $("#wNext").onclick=()=>{ if(!thisWeek) go(addDays(S.wkStart,7)); };
+  const wn=$("#wNow"); if(wn) wn.onclick=()=>go(thisMon);
+  $("#wUnit").onchange=e=>{ S.wkUnit=e.target.value; S.wkData=null; renderAdmin(); };
+  $("#wRef").onclick=()=>{ S.wkData=null; renderAdmin(); };
+  const wc=$("#wCopy"); if(wc&&R) wc.onclick=()=>copyText(weekText(R),"Laporan mingguan disalin. Tinggal tempel di WhatsApp.");
+}
+
+/* ---------- shell ---------- */
+function setMode(m){
+  S.mode=m; $("#m-kiosk").setAttribute("aria-pressed",m==="kiosk"); $("#m-admin").setAttribute("aria-pressed",m==="admin");
+  if(m==="kiosk") S.adminPin=null;
+  $("#modal").innerHTML=""; renderKiosk(); renderAdmin();
+}
+$("#m-kiosk").onclick=()=>setMode("kiosk");
+$("#m-admin").onclick=()=>setMode("admin");
+if(URL_TOKO) ls.set("konstra_unit",URL_TOKO);
+setMode("kiosk");
+refresh();
+})();
+</script>
+</body>
+</html>
