@@ -411,7 +411,7 @@ function sheet(html){
   $("#modal").querySelectorAll("[data-close]").forEach(b=>b.onclick=closeFlow);
 }
 const head=(e,sub)=>`<div class="sheethead"><div class="av">${esc(initials(e.name))}</div><div><b>${esc(e.name)}</b><div class="sub">${esc(sub)}</div></div><button class="btn ghost sm x" data-close aria-label="Tutup">✕</button></div>`;
-const dots=n=>[0,1,2,3].map(i=>`<i class="${i<n?"f":""}"></i>`).join("");
+const dots=(n,len=4)=>[...Array(len).keys()].map(i=>`<i class="${i<n?"f":""}"></i>`).join("");
 const PIN_TXT={enter:["Masukkan PIN kamu","PIN 4 angka"],new1:["Buat PIN kamu","Pilih 4 angka yang gampang kamu ingat. Jangan kasih tahu orang lain."],new2:["Ulangi PIN","Ketik lagi 4 angka yang sama"],chg1:["PIN baru","Ketik 4 angka PIN baru"],chg2:["Ulangi PIN baru","Ketik lagi PIN baru yang sama"]};
 let pinBuf="";
 function renderPin(msg){
@@ -653,19 +653,19 @@ let gate="";
 function renderAdmin(){
   const v=$("#adminView"); if(S.mode!=="admin"){ v.hidden=true; return; } v.hidden=false;
   if(!S.adminPin){
-    v.innerHTML=`<div class="gate"><div class="eyebrow">Khusus admin</div><h2>Masukkan PIN admin</h2><p>PIN admin diatur di Google Sheet, tab Pengaturan App.</p>
-      <div class="pinrow" id="gaterow">${dots(gate.length)}</div>
+    v.innerHTML=`<div class="gate"><div class="eyebrow">Khusus admin</div><h2>Masukkan PIN admin</h2><p>6 angka. Diatur di Google Sheet, tab Pengaturan App.</p>
+      <div class="pinrow" id="gaterow">${dots(gate.length,6)}</div>
       <div class="pad">${[1,2,3,4,5,6,7,8,9].map(n=>`<button data-g="${n}">${n}</button>`).join("")}<button class="fn" data-g="c">Hapus</button><button data-g="0">0</button><button class="fn" data-g="k">Kiosk</button></div>
       <div class="err" id="gateerr"></div></div>`;
     v.querySelectorAll("[data-g]").forEach(b=>b.onclick=async()=>{
       const k=b.dataset.g; if(k==="k") return setMode("kiosk");
-      if(k==="c") gate=gate.slice(0,-1); else if(gate.length<4) gate+=k;
-      $("#gaterow").innerHTML=dots(gate.length);
-      if(gate.length<4) return;
+      if(k==="c") gate=gate.slice(0,-1); else if(gate.length<6) gate+=k;
+      $("#gaterow").innerHTML=dots(gate.length,6);
+      if(gate.length<6) return;
       const p=gate; gate=""; busy(true,"Cek PIN…");
       try{ const r=await call("adminCheck",p); busy(false);
-        if(!r.ok){ $("#gaterow").innerHTML=dots(0); $("#gateerr").textContent="PIN admin salah."; return; }
-        S.adminPin=p; S.sheetUrl=r.sheetUrl; if(r.defaultPin) toast("PIN admin masih 1234. Ganti di tab Pengaturan App."); renderAdmin(); loadDay();
+        if(!r.ok){ $("#gaterow").innerHTML=dots(0,6); $("#gateerr").textContent=r.msg||"PIN admin salah."; return; }
+        S.adminPin=p; S.sheetUrl=r.sheetUrl; renderAdmin(); loadDay();
       }catch(e){ busy(false); $("#gateerr").textContent=errMsg(e); }
     });
     return;
