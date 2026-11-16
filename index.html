@@ -818,6 +818,18 @@ function openFix(ds){
     catch(e){ busy(false); $("#fxErr").textContent=errMsg(e); }
   };
 }
+/** Tombol cepat periode Rekap. Tanggal akhir tidak lewat hari ini. */
+function recPreset(k){
+  const t=jk(nowMs()).key, [y,m,d]=t.split("-").map(Number);
+  const D=(Y,M,Dd)=>new Date(Date.UTC(Y,M-1,Dd)), iso=x=>x.toISOString().slice(0,10);
+  let f, to=t;
+  if(k==="minggu"){ const x=D(y,m,d); f=iso(new Date(x-((x.getUTCDay()+6)%7)*864e5)); }
+  else if(k==="bulan") f=iso(D(y,m,1));
+  else if(k==="lalu"){ f=iso(D(y,m-1,1)); to=iso(D(y,m,0)); }
+  else if(k==="gaji"){ const st=d>=28?D(y,m,28):D(y,m-1,28); f=iso(st); const e=iso(D(st.getUTCFullYear(),st.getUTCMonth()+2,27)); to=e<t?e:t; }
+  else f=`${y}-01-01`;
+  S.recFrom=f; S.recTo=to; loadRekap();
+}
 async function loadRekap(){
   if(S.recFrom>S.recTo) return toast("Tanggal awal harus sebelum tanggal akhir");
   S.recData="loading"; renderAdmin();
@@ -831,6 +843,7 @@ function tabRekap(el){
       <div class="field"><label for="rTo">Sampai</label><input type="date" id="rTo" value="${S.recTo}"></div>
       <div class="field"><label for="rStore">Unit</label>${storeSel("rStore",S.recStore)}</div>
       <button class="btn primary" id="rGo">Tampilkan rekap</button></div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;margin:-4px 0 16px">${[["minggu","Minggu ini"],["bulan","Bulan ini"],["lalu","Bulan lalu"],["gaji","Periode gaji (28–27)"],["tahun","Tahun ini"]].map(([k,l])=>`<button class="btn sm" data-rp="${k}">${l}</button>`).join("")}</div>
     ${S.recData==="loading"?`<div class="empty">Menghitung rekap…</div>`:!d?`<div class="empty"><b>Pilih periode lalu tekan "Tampilkan rekap"</b>Biasanya per periode gaji, misalnya tanggal 1 sampai akhir bulan.</div>`:`
     <div class="kpis">
       <div class="kpi"><span class="eyebrow">Total hari hadir</span><b>${d.total.days}</b><span class="sub">semua karyawan</span></div>
@@ -848,6 +861,7 @@ function tabRekap(el){
   $("#rTo").onchange=e=>S.recTo=e.target.value;
   $("#rStore").onchange=e=>S.recStore=e.target.value;
   $("#rGo").onclick=loadRekap;
+  el.querySelectorAll("[data-rp]").forEach(b=>b.onclick=()=>recPreset(b.dataset.rp));
   const cp=$("#cp"); if(cp) cp.onclick=async()=>{
     const rows=[["Nama","Jabatan","Unit","Hari hadir","Izin","Sakit","Alpa","Kali telat","Menit telat","Pulang cepat","Lupa pulang","Masuk hari libur","Jam kerja"].concat(d.otOn?["Lembur (jam)"]:[]),...d.rows.map(b=>[b.name,b.role,b.store,b.days,b.izin||0,b.sakit||0,b.alpa||0,b.late,b.lateMin,b.early,b.open,b.hol||0,(b.work/60).toFixed(1)].concat(d.otOn?[(b.ot/60).toFixed(1)]:[]))];
     try{ await navigator.clipboard.writeText(rows.map(r=>r.join("\t")).join("\n")); toast("Disalin. Tempel ke Google Sheets."); }catch(e){ toast("Tidak bisa menyalin otomatis"); }
