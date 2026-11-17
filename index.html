@@ -360,7 +360,9 @@ function renderKiosk(){
   const here=all;
   const done=here.filter(e=>((S.data.status[e.id]||{}).action||"in")!=="in").length;
   const nm=t.h*60+t.mi;
-  const cur=S.data.shifts.find(s=>{const a=+s.start.slice(0,2)*60+ +s.start.slice(3), b=+s.end.slice(0,2)*60+ +s.end.slice(3); return a<b? nm>=a&&nm<b : nm>=a||nm<b;});
+  // cuma shift yang dipakai karyawan aktif (di unit terpilih) yang ditampilkan
+  const used=new Set(all.filter(e=>!S.store||e.store===S.store).map(e=>shiftOf(e.shift).id));
+  const curs=S.data.shifts.filter(s=>{if(!used.has(s.id))return false;const a=+s.start.slice(0,2)*60+ +s.start.slice(3), b=+s.end.slice(0,2)*60+ +s.end.slice(3); return a<b? nm>=a&&nm<b : nm>=a||nm<b;});
   const keep=document.activeElement && document.activeElement.id==="q";
   v.innerHTML=`<div class="kiosk">
     <aside class="clockcard">
@@ -368,7 +370,7 @@ function renderKiosk(){
       <div class="bigclock" id="bigclock">${pad2(t.h)}:${pad2(t.mi)}<span>:${pad2(t.s)}</span></div>
       <div class="today">${esc(longDate(t.key))}</div>
       <button class="storebtn" id="pickStore"><span><span class="eyebrow" style="color:inherit;opacity:.75">Unit</span><b>${esc(S.store?storeName(S.store):"Semua unit")}</b></span><span aria-hidden="true">Ganti ›</span></button>
-      <div class="shiftnow">${cur?`Shift berjalan: <b>${esc(cur.name)}</b> ${cur.start}–${cur.end}`:"Di luar jam shift"}</div>
+      <div class="shiftnow">${curs.length?`Shift berjalan: ${curs.map(c=>`<b>${esc(c.name)}</b> ${c.start}–${c.end}`).join(", ")}`:"Di luar jam shift"}</div>
       <div class="counts"><div><b>${done}</b>sudah absen</div><div><b>${Math.max(0,here.length-done)}</b>belum</div></div>
     </aside>
     <section class="picker">
