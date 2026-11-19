@@ -466,9 +466,9 @@ function renderMe(){
   const status = m.action==="in" ? (m.leave?`<span class="pill blue">${esc(m.leave)} hari ini</span>`:`<span class="pill">Belum absen hari ini</span>`)
     : m.action==="out" ? `<span class="pill ${m.late>0?"warn":"ok"}">Masuk ${esc(m.inStr)}${m.late>0?` · telat ${mnt(m.late)}`:""}</span>`
     : `<span class="pill blue">Masuk ${esc(m.inStr)} · Pulang ${esc(m.outStr||"–")}</span>`;
-  const main = m.action==="in"&&m.leave ? `<button class="btn bigact" disabled>Hari ini kamu ${esc(m.leave.toLowerCase())}</button>`
+  const main = m.action==="in"&&m.leave&&m.leave!=="Cuti" ? `<button class="btn bigact" disabled>Hari ini kamu ${esc(m.leave.toLowerCase())}</button>`
     : m.action==="done" ? (m.outStr ? `<button class="btn bigact" disabled>Sudah absen pulang hari ini</button>`
-      : `<button class="btn bigact" disabled>Absen hari ini sudah ditutup</button><p class="sub" style="margin:8px 0 0">Lupa absen pulang? Lapor lewat menu <b>Izin / Sakit / Lupa absen</b>.</p>`)
+      : `<button class="btn bigact" disabled>Absen hari ini sudah ditutup</button><p class="sub" style="margin:8px 0 0">Lupa absen pulang? Lapor lewat menu <b>Izin / Sakit / Cuti / Lupa absen</b>.</p>`)
     : `<button class="btn ${m.action==="in"?"primary":"sun"} bigact" id="goClock">${m.action==="in"?"Absen masuk":"Absen pulang"}</button>`;
   const al=m.alerts||[], alOpen=al.filter(a=>!a.reported).length;
   const alBox = al.length ? `<div class="alertbox" role="status"><b>${alOpen?`Ada ${alOpen} absen yang belum beres`:"Laporan lupa absen kamu sedang dicek admin"}</b>
@@ -481,7 +481,7 @@ function renderMe(){
     <div class="mestat"><span class="sub">Jadwal ${esc(sh.name)} ${sh.start}–${sh.end}</span>${status}</div>
     ${main}
     <div class="megrid">
-      <button class="btn" id="goLeave">Izin / Sakit / Lupa absen</button>
+      <button class="btn" id="goLeave">Izin / Sakit / Cuti / Lupa absen</button>
       ${LEMBUR_ON?`<button class="btn" id="goLem">Ajukan lembur</button>`:""}
       <button class="btn" id="goHist">Riwayat saya</button>
       <button class="btn" id="goPin">Ganti PIN</button>
@@ -524,31 +524,53 @@ function renderTugas(dist,pre){
   $("#backMe").onclick=renderMe;
   $("#tgSend").onclick=()=>{ const t=$("#tg").value.trim(); if(!t){ $("#tgerr").textContent="Tulis keperluannya dulu."; return; } flow.tugas=t; if(pre) renderPhoto(); else submit(); };
 }
-const LEAVE=[["Izin","Ada keperluan, tidak masuk","Contoh: mengurus surat di kelurahan"],["Sakit","Tidak masuk karena sakit","Contoh: demam, sudah ke dokter"],["Lupa absen (lapor)","Sudah masuk / pulang tapi lupa absen","Contoh: masuk jam 09.05, lupa absen masuk"]];
+const LEAVE=[
+  ["Izin","Ada keperluan, tidak masuk","Contoh: mengurus surat di kelurahan"],
+  ["Izin khusus","Nikah, nikahkan / khitan / baptis anak, istri melahirkan, keluarga meninggal","Contoh: pernikahan saya"],
+  ["Sakit","Tidak masuk karena sakit","Contoh: demam, sudah ke dokter"],
+  ["Cuti","Cuti tahunan yang sudah disetujui atasan","Contoh: cuti pulang kampung"],
+  ["Lupa absen (lapor)","Sudah masuk / pulang tapi lupa absen","Contoh: masuk jam 09.05, lupa absen masuk"]];
+const LEAVE_TIP={
+  "Izin":"Izin harus sudah diizinkan atasan lewat WA dulu. Izin dibayar penuh paling banyak 3 hari setahun, lebih dari itu gaji dipotong.",
+  "Izin khusus":"Izin khusus tidak mengurangi jatah izin 3 hari. Kabari atasan lewat WA dan siapkan buktinya (undangan, surat keterangan, dll.).",
+  "Sakit":"Lapor setiap hari selama sakit. Mulai hari ke-2 wajib surat dokter, kirim fotonya ke atasan lewat WA.",
+  "Cuti":"Cuti diajukan ke atasan lewat WA paling lambat 7 hari sebelumnya. Setelah disetujui, catat di sini. Hari libur dan tanggal merah tidak dihitung.",
+  "Lupa absen (lapor)":"Tulis jam yang sebenarnya. Admin akan mengisi jamnya."};
 function renderLeave(){
-  const e=flow.emp, cur=LEAVE.find(x=>x[0]===flow.leaveType)||LEAVE[0], lf=flow.leaveFor;
+  const e=flow.emp, cur=LEAVE.find(x=>x[0]===flow.leaveType)||LEAVE[0], lf=flow.leaveFor, today=jk(nowMs()).key;
+  const isCuti=!lf&&cur[0]==="Cuti";
+  if(isCuti&&!flow.cuti) flow.cuti={from:today,to:today};
   const ph = lf ? (lf.type==="pulang"?"Contoh: pulang jam 18.30, lupa absen pulang":"Contoh: masuk 08.55, pulang 18.30, lupa absen") : cur[2];
   sheet(`${head(e,`${e.role||"Karyawan"} · ${storeName(e.store)}`)}
-    <div class="eyebrow">${lf?"Lapor lupa absen":"Lapor izin, sakit, atau lupa absen"}</div>
+    <div class="eyebrow">${lf?"Lapor lupa absen":"Lapor izin, sakit, cuti, atau lupa absen"}</div>
     ${lf?`<div class="notice info">Untuk <b>${esc(lf.dateLong)}</b>. ${lf.type==="pulang"?`Kamu absen masuk ${esc(lf.inStr)} tapi tidak absen pulang. Tulis jam kamu pulang.`:"Tulis jam masuk dan jam pulang kamu. Kalau hari itu kamu izin atau sakit, tulis juga di sini."}</div>`
-      :`<div class="choice">${LEAVE.map(([v,d])=>`<button class="btn ${flow.leaveType===v?"primary":""}" data-lt="${esc(v)}"><b>${esc(v.replace(" (lapor)",""))}</b><span>${esc(d)}</span></button>`).join("")}</div>`}
+      :`<div class="choice">${LEAVE.map(([v,d])=>`<button class="btn ${cur[0]===v?"primary":""}" data-lt="${esc(v)}"><b>${esc(v.replace(" (lapor)",""))}</b><span>${esc(d)}</span></button>`).join("")}</div>
+      <p class="sub" style="margin:0 0 12px">${esc(LEAVE_TIP[cur[0]]||"")}</p>`}
+    ${isCuti?`<div class="row2" style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px">
+      <div class="field"><label for="cF">Mulai</label><input type="date" id="cF" value="${esc(flow.cuti.from)}" min="${today}" max="${addDays(today,90)}"></div>
+      <div class="field"><label for="cT">Sampai</label><input type="date" id="cT" value="${esc(flow.cuti.to)}" min="${today}" max="${addDays(today,90)}"></div></div>`:""}
     <div class="field" style="margin-bottom:14px"><label for="lk">${lf?"Jam dan keterangan":"Alasan / keterangan"}</label><textarea id="lk" rows="3" placeholder="${esc(ph)}">${esc(flow.leaveKet)}</textarea></div>
-    <button class="btn primary bigact" id="lSend">Kirim laporan</button>
+    <button class="btn primary bigact" id="lSend">${isCuti?"Catat cuti":"Kirim laporan"}</button>
     <button class="btn ghost" style="width:100%;margin-top:8px" id="backMe">Kembali</button>
     <div class="err" id="lerr"></div>`);
   $("#modal").querySelectorAll("[data-lt]").forEach(b=>b.onclick=()=>{ flow.leaveKet=$("#lk").value; flow.leaveType=b.dataset.lt; renderLeave(); });
   $("#lk").oninput=()=>{ flow.leaveKet=$("#lk").value; };
-  $("#backMe").onclick=()=>{ flow.leaveFor=null; renderMe(); };
+  if(isCuti){ $("#cF").onchange=ev=>{ flow.cuti.from=ev.target.value; if(!flow.cuti.to||flow.cuti.to<flow.cuti.from){ flow.cuti.to=flow.cuti.from; $("#cT").value=flow.cuti.to; } }; $("#cT").onchange=ev=>{ flow.cuti.to=ev.target.value; }; }
+  $("#backMe").onclick=()=>{ flow.leaveFor=null; flow.cuti=null; renderMe(); };
   $("#lSend").onclick=async()=>{
     const ket=$("#lk").value.trim(); if(!ket){ $("#lerr").textContent="Tulis alasannya dulu."; return; }
+    if(isCuti){ if(!flow.cuti.from||!flow.cuti.to){ $("#lerr").textContent="Isi tanggal mulai dan sampai."; return; } if(flow.cuti.to<flow.cuti.from){ $("#lerr").textContent="Tanggal sampai tidak boleh sebelum tanggal mulai."; return; } }
     busy(true,"Mengirim…");
     try{
-      const r=await call("leave",flow.emp.id,flow.pin,flow.leaveType,ket,lf?lf.date:""); busy(false); refresh(true); flow.leaveKet=""; if(/^(Izin|Sakit)$/.test(r.jenis)&&flow.me&&flow.me.action==="in") flow.me.leave=r.jenis;
+      const r=await call("leave",flow.emp.id,flow.pin,flow.leaveType,ket,lf?lf.date:(isCuti?flow.cuti.from:""),isCuti?flow.cuti.to:""); busy(false); refresh(true); flow.leaveKet="";
+      if(flow.me&&flow.me.action==="in"){ if(/^(Izin|Izin khusus|Sakit)$/.test(r.jenis)) flow.me.leave=r.jenis==="Sakit"?"Sakit":"Izin"; else if(isCuti&&flow.cuti.from===today) flow.me.leave="Cuti"; }
       if(lf&&flow.me&&flow.me.alerts) flow.me.alerts.forEach(a=>{ if(a.date===lf.date) a.reported=true; });
-      flow.leaveFor=null;
-      sheet(`<div class="receipt" role="status"><div class="c"><h3>PT KONSTRA NIAGA PRATAMA</h3><div>Laporan terkirim</div></div><hr>
-        <div class="c eyebrow">${esc(r.jenis.replace(" (lapor)",""))}</div><div class="c" style="font-size:18px;margin:6px 0">${r.forLong?`Untuk ${esc(r.forLong)}`:`${esc(r.dateLong)} · ${esc(r.time)}`}</div><hr>
-        <div class="r"><span>Nama</span><span>${esc(flow.emp.name)}</span></div><div style="margin-top:8px">${esc(r.ket)}</div></div>
+      flow.leaveFor=null; flow.cuti=null;
+      const q=r.quota, qLine=q?(q.lebih?`<div class="notice warn" style="margin-top:10px">Izin tahun ${esc(q.year)} sudah ${q.used} hari, lewat dari jatah ${q.jatah} hari. Izin ini gajinya dipotong.</div>`
+        :`<div class="sub" style="margin-top:10px">Jatah izin dibayar tahun ${esc(q.year)}: terpakai ${q.used} dari ${q.jatah} hari, sisa ${q.sisa}.</div>`):"";
+      sheet(`<div class="receipt" role="status"><div class="c"><h3>PT KONSTRA NIAGA PRATAMA</h3><div>${r.jenis==="Cuti"?"Cuti tercatat":"Laporan terkirim"}</div></div><hr>
+        <div class="c eyebrow">${esc(r.jenis.replace(" (lapor)",""))}</div><div class="c" style="font-size:18px;margin:6px 0">${r.forLong?`${r.jenis==="Cuti"?"":"Untuk "}${esc(r.forLong)}`:`${esc(r.dateLong)} · ${esc(r.time)}`}</div>${r.days?`<div class="c sub">${r.days} hari kerja</div>`:""}<hr>
+        <div class="r"><span>Nama</span><span>${esc(flow.emp.name)}</span></div><div style="margin-top:8px">${esc(r.ket)}</div>${qLine}</div>
         <button class="btn primary bigact" style="margin-top:18px" id="backMe">Kembali ke Absen saya</button>`);
       $("#backMe").onclick=renderMe;
     }catch(err){ busy(false); $("#lerr").textContent=errMsg(err); }
@@ -601,6 +623,7 @@ async function renderHistory(){
     const h=await call("myHistory",e.id,flow.pin);
     sheet(`${hd}<div class="eyebrow">Riwayat saya</div><p class="sub" style="margin:2px 0 12px">Periode gaji ${esc(h.from)} – ${esc(h.to)}</p>
       <div class="minikpi"><div><b>${h.hadir}</b><span>Hadir</span></div><div><b>${h.telat}</b><span>Telat</span></div><div><b>${h.izin}</b><span>Izin</span></div><div><b>${h.sakit}</b><span>Sakit</span></div></div>
+      ${h.quota?`<p class="sub" style="margin:10px 0 12px">Jatah izin dibayar tahun ${esc(h.quota.year)}: terpakai ${h.quota.used} dari ${h.quota.jatah} hari${h.quota.lebih?`, <b>lebih ${h.quota.lebih} hari (dipotong)</b>`:`, sisa ${h.quota.sisa}`}.${h.cuti?` Cuti dicatat: ${h.cuti}x.`:""}</p>`:""}
       ${h.rows.length?`<div class="histlist">${h.rows.map(r=>r.kind==="absen"
         ?`<div class="hrow"><div><b>${esc(r.dateLong)}</b><div class="sub">Masuk ${esc(r.inStr)} · Pulang ${esc(r.outStr||"–")}</div></div><span class="pill ${r.late>0?"warn":"ok"}">${r.late>0?`Telat ${mnt(r.late)}`:"Tepat waktu"}</span></div>`
         :`<div class="hrow"><div><b>${esc(r.dateLong)}</b><div class="sub">${esc(r.ket)}</div></div><span class="pill blue">${esc(r.jenis.replace(" (lapor)",""))}</span></div>`).join("")}</div>`
@@ -797,8 +820,8 @@ function tabHari(el){
     ${(d.pending||[]).length?`<div class="card"><div class="cardhead"><h3>Lupa absen tanggal lain, belum diisi</h3><span class="sub">${d.pending.length} laporan</span></div><div class="pinlist">
       ${d.pending.map(x=>`<div class="pinrow2"><div style="min-width:0;flex:1 1 240px"><div class="namecell"><div class="av">${esc(initials(x.name))}</div><div><b>${esc(x.name)}</b> <span class="pill warn">${esc(x.dateLong)}</span><div class="sub" style="margin-top:4px">${esc(x.ket)}</div></div></div></div>
         <div class="pinact"><button class="btn sm primary" data-goday="${esc(x.date)}">Buka tanggal ini</button></div></div>`).join("")}</div></div>`:""}
-    ${(d.reports||[]).length?`<div class="card"><div class="cardhead"><h3>Laporan izin, sakit, lupa absen</h3><span class="sub">${d.reports.length} laporan</span></div><div class="pinlist">
-      ${d.reports.map(x=>`<div class="pinrow2"><div style="min-width:0;flex:1 1 240px"><div class="namecell"><div class="av">${esc(initials(x.name))}</div><div><b>${esc(x.name)}</b> <span class="pill ${x.jenis==="Lupa absen"?"warn":"blue"}">${esc(x.jenis)}</span><div class="sub" style="margin-top:4px">${esc(x.ket)}</div></div></div></div>
+    ${(d.reports||[]).length?`<div class="card"><div class="cardhead"><h3>Laporan izin, sakit, cuti, lupa absen</h3><span class="sub">${d.reports.length} laporan</span></div><div class="pinlist">
+      ${d.reports.map(x=>`<div class="pinrow2"><div style="min-width:0;flex:1 1 240px"><div class="namecell"><div class="av">${esc(initials(x.name))}</div><div><b>${esc(x.name)}</b> <span class="pill ${x.jenis==="Lupa absen"?"warn":"blue"}">${esc(x.label||x.jenis)}</span><div class="sub" style="margin-top:4px">${esc(x.ket)}</div></div></div></div>
         ${x.jenis==="Lupa absen"?`<div class="pinact"><button class="btn sm primary" data-fx="${esc(x.empId)}" data-nm="${esc(x.name)}" data-in="${esc((d.rows.find(r=>r.empId===x.empId)||{}).inStr||"")}" data-out="" data-ket="${esc(x.ket)}">Isi jam</button></div>`:""}</div>`).join("")}</div></div>`:""}`}`;
   $("#dDay").onchange=e=>{S.day=e.target.value||jk(nowMs()).key; loadDay();};
   $("#dStore").onchange=e=>{S.dayStore=e.target.value; loadDay();};
@@ -874,19 +897,20 @@ function tabRekap(el){
       <div class="kpi"><span class="eyebrow">Jam kerja</span><b>${Math.round(d.total.work/60)}</b><span class="sub">jam tercatat</span></div>
       ${d.otOn?`<div class="kpi ok"><span class="eyebrow">Lembur</span><b>${(d.total.ot/60).toFixed(1)}</b><span class="sub">jam, yang disetujui</span></div>`:`<div class="kpi"><span class="eyebrow">Masuk hari libur</span><b>${d.total.hol||0}</b><span class="sub">hari, semua karyawan</span></div>`}</div>
     <div class="card"><div class="cardhead"><h3>Rekap per karyawan</h3><button class="btn sm" id="cp">Salin ke clipboard</button></div>
-      <div class="tbl"><table><thead><tr><th>Karyawan</th><th>Unit</th><th class="num">Hadir</th><th class="num">Izin</th><th class="num">Sakit</th><th class="num">Alpa</th><th class="num">Telat</th><th class="num">Menit telat</th><th class="num">Pulang cepat</th><th class="num">Lupa pulang</th><th class="num">Masuk hari libur</th><th class="num">Jam kerja</th>${d.otOn?`<th class="num">Lembur</th>`:""}</tr></thead><tbody>
+      <div class="tbl"><table><thead><tr><th>Karyawan</th><th>Unit</th><th class="num">Hadir</th><th class="num">Izin</th><th class="num">Izin dipotong</th><th class="num">Sisa jatah izin</th><th class="num">Sakit</th><th class="num">Cuti</th><th class="num">Alpa</th><th class="num">Telat</th><th class="num">Menit telat</th><th class="num">Pulang cepat</th><th class="num">Lupa pulang</th><th class="num">Masuk hari libur</th><th class="num">Jam kerja</th>${d.otOn?`<th class="num">Lembur</th>`:""}</tr></thead><tbody>
       ${d.rows.map(b=>`<tr><td><div class="namecell"><div class="av">${esc(initials(b.name))}</div><div><b>${esc(b.name)}</b><div class="sub">${esc(b.role)}</div></div></div></td><td>${esc(b.store)}</td>
-        <td class="num">${b.days}</td><td class="num">${b.izin||0}</td><td class="num">${b.sakit||0}</td><td class="num">${b.alpa?`<span class="pill bad">${b.alpa}</span>`:"0"}</td><td class="num">${b.late?`<span class="pill warn">${b.late}x</span>`:"0"}</td><td class="num">${b.lateMin}</td><td class="num">${b.early}</td>
+        <td class="num">${b.days}</td><td class="num">${b.izin||0}</td><td class="num">${b.izinPotong?`<span class="pill bad">${b.izinPotong}</span>`:"0"}</td><td class="num">${b.izinSisa??"–"}</td><td class="num">${b.sakit||0}</td><td class="num">${b.cuti||0}</td><td class="num">${b.alpa?`<span class="pill bad">${b.alpa}</span>`:"0"}</td><td class="num">${b.late?`<span class="pill warn">${b.late}x</span>`:"0"}</td><td class="num">${b.lateMin}</td><td class="num">${b.early}</td>
         <td class="num">${b.open?`<span class="pill bad">${b.open}</span>`:"0"}</td><td class="num">${b.hol?`<span class="pill blue">${b.hol} hari</span>`:"0"}</td><td class="num">${dur(b.work)}</td>${d.otOn?`<td class="num">${dur(b.ot)}</td>`:""}</tr>`).join("")}
       </tbody></table></div></div>
-    <p class="sub" style="margin-top:12px">Rekap bulanan periode gaji juga otomatis ada di Google Sheet, tab Bulanan.</p>`}`;
+    <p class="sub" style="margin-top:12px">Izin dipotong = izin biasa yang lewat dari jatah ${d.jatah||3} hari setahun (Januari–Desember); gaji hari itu dipotong. Sisa jatah izin dihitung untuk tahun ${esc(d.jatahYear||"")}. Izin khusus (nikah, keluarga meninggal, dll.) dan tugas luar tidak mengurangi jatah. Sakit tanpa surat dokter mulai hari ke-2 tidak tercatat otomatis, cek manual.</p>
+    <p class="sub" style="margin-top:6px">Rekap bulanan periode gaji juga otomatis ada di Google Sheet, tab Bulanan.</p>`}`;
   $("#rFrom").onchange=e=>S.recFrom=e.target.value;
   $("#rTo").onchange=e=>S.recTo=e.target.value;
   $("#rStore").onchange=e=>S.recStore=e.target.value;
   $("#rGo").onclick=loadRekap;
   el.querySelectorAll("[data-rp]").forEach(b=>b.onclick=()=>recPreset(b.dataset.rp));
   const cp=$("#cp"); if(cp) cp.onclick=async()=>{
-    const rows=[["Nama","Jabatan","Unit","Hari hadir","Izin","Sakit","Alpa","Kali telat","Menit telat","Pulang cepat","Lupa pulang","Masuk hari libur","Jam kerja"].concat(d.otOn?["Lembur (jam)"]:[]),...d.rows.map(b=>[b.name,b.role,b.store,b.days,b.izin||0,b.sakit||0,b.alpa||0,b.late,b.lateMin,b.early,b.open,b.hol||0,(b.work/60).toFixed(1)].concat(d.otOn?[(b.ot/60).toFixed(1)]:[]))];
+    const rows=[["Nama","Jabatan","Unit","Hari hadir","Izin","Izin dipotong","Sisa jatah izin","Sakit","Cuti","Alpa","Kali telat","Menit telat","Pulang cepat","Lupa pulang","Masuk hari libur","Jam kerja"].concat(d.otOn?["Lembur (jam)"]:[]),...d.rows.map(b=>[b.name,b.role,b.store,b.days,b.izin||0,b.izinPotong||0,b.izinSisa??"",b.sakit||0,b.cuti||0,b.alpa||0,b.late,b.lateMin,b.early,b.open,b.hol||0,(b.work/60).toFixed(1)].concat(d.otOn?[(b.ot/60).toFixed(1)]:[]))];
     try{ await navigator.clipboard.writeText(rows.map(r=>r.join("\t")).join("\n")); toast("Disalin. Tempel ke Google Sheets."); }catch(e){ toast("Tidak bisa menyalin otomatis"); }
   };
 }
