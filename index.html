@@ -319,7 +319,7 @@ const dur = min => `${Math.floor((min||0)/60)}j ${Math.round((min||0)%60)}m`;
 const mnt = v => { const t=Math.round(Number(v)||0), h=Math.floor(t/60), m=t%60; return h ? h+" jam"+(m?" "+m+" mnt":"") : m+" mnt"; };
 
 const S = { data:null, offset:0, mode:"kiosk", store: URL_TOKO || ls.get("konstra_unit") || "", search:"",
-  adminPin:null, sheetUrl:"", tab:"hari", day:null, dayStore:"all", dayData:null, recFrom:null, recTo:null, recStore:"all", recData:null,
+  adminPin:null, adminRole:"admin", sheetUrl:"", tab:"hari", day:null, dayStore:"all", dayData:null, recFrom:null, recTo:null, recStore:"all", recData:null,
   wkStart:null, wkUnit:"all", wkData:null };
 const nowMs = () => Date.now() + S.offset;
 const storeName = id => ((S.data?.stores||[]).find(s=>s.id===id)||{}).name || id || "–";
@@ -707,7 +707,7 @@ function renderAdmin(){
       const p=gate; gate=""; busy(true,"Cek PIN…");
       try{ const r=await call("adminCheck",p); busy(false);
         if(!r.ok){ $("#gaterow").innerHTML=dots(0,6); $("#gateerr").textContent=r.msg||"PIN admin salah."; return; }
-        S.adminPin=p; S.sheetUrl=r.sheetUrl; renderAdmin(); loadDay();
+        S.adminPin=p; S.adminRole=r.role||"admin"; S.sheetUrl=r.sheetUrl||""; if(S.adminRole!=="rekap"&&S.tab==="rekap") S.tab="hari"; renderAdmin(); loadDay();
       }catch(e){ busy(false); $("#gateerr").textContent=errMsg(e); }
     });
     return;
@@ -715,16 +715,17 @@ function renderAdmin(){
   const t=jk(nowMs());
   if(!S.day) S.day=t.key;
   if(!S.recFrom){ S.recFrom=t.key.slice(0,8)+"01"; S.recTo=t.key; }
+  if(S.tab==="rekap"&&S.adminRole!=="rekap") S.tab="hari";
   v.innerHTML=`<div class="tabs" role="tablist">
       <button role="tab" aria-selected="${S.tab==="hari"}" data-tab="hari">Hari ini</button>
       <button role="tab" aria-selected="${S.tab==="laporan"}" data-tab="laporan">Laporan mingguan</button>
-      <button role="tab" aria-selected="${S.tab==="rekap"}" data-tab="rekap">Rekap & gaji</button>
+      ${S.adminRole==="rekap"?`<button role="tab" aria-selected="${S.tab==="rekap"}" data-tab="rekap">Rekap & gaji</button>`:""}
       ${LEMBUR_ON?"":"<!--"}<button role="tab" aria-selected="${S.tab==="lembur"}" data-tab="lembur">Lembur${S.lemData&&S.lemData!=="loading"&&S.lemData.pending.length?` (${S.lemData.pending.length})`:""}</button>${LEMBUR_ON?"":"-->"}
       <button role="tab" aria-selected="${S.tab==="pin"}" data-tab="pin">Karyawan & PIN</button>
-      <a class="btn sm" style="margin-left:auto" href="${esc(S.sheetUrl)}" target="_blank" rel="noopener">Buka Google Sheet ↗</a>
-      <button class="btn ghost sm" id="lock">Kunci</button></div><div id="tabBody"></div>`;
+      ${S.sheetUrl?`<a class="btn sm" style="margin-left:auto" href="${esc(S.sheetUrl)}" target="_blank" rel="noopener">Buka Google Sheet ↗</a>`:""}
+      <button class="btn ghost sm" id="lock" ${S.sheetUrl?"":`style="margin-left:auto"`}>Kunci</button></div><div id="tabBody"></div>`;
   v.querySelectorAll("[data-tab]").forEach(b=>b.onclick=()=>{S.tab=b.dataset.tab; renderAdmin();});
-  $("#lock").onclick=()=>{S.adminPin=null; renderAdmin();};
+  $("#lock").onclick=()=>{S.adminPin=null; S.adminRole="admin"; S.sheetUrl=""; renderAdmin();};
   ({hari:tabHari,laporan:tabLaporan,rekap:tabRekap,lembur:tabLembur,pin:tabPin})[S.tab]($("#tabBody"));
 }
 async function loadLem(){
@@ -985,7 +986,7 @@ function tabLaporan(el){
 /* ---------- shell ---------- */
 function setMode(m){
   S.mode=m; $("#m-kiosk").setAttribute("aria-pressed",m==="kiosk"); $("#m-admin").setAttribute("aria-pressed",m==="admin");
-  if(m==="kiosk") S.adminPin=null;
+  if(m==="kiosk"){ S.adminPin=null; S.adminRole="admin"; S.sheetUrl=""; }
   $("#modal").innerHTML=""; renderKiosk(); renderAdmin();
 }
 $("#m-kiosk").onclick=()=>setMode("kiosk");
