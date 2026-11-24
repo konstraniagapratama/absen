@@ -320,7 +320,7 @@ const dur = min => `${Math.floor((min||0)/60)}j ${Math.round((min||0)%60)}m`;
 const mnt = v => { const t=Math.round(Number(v)||0), h=Math.floor(t/60), m=t%60; return h ? h+" jam"+(m?" "+m+" mnt":"") : m+" mnt"; };
 
 const S = { data:null, offset:0, mode:"kiosk", store: URL_TOKO || ls.get("konstra_unit") || "", search:"",
-  adminPin:null, adminRole:"admin", sheetUrl:"", tab:"hari", day:null, dayStore:"all", dayData:null, recFrom:null, recTo:null, recStore:"all", recData:null,
+  adminPin:null, adminRole:"admin", adminSelf:"", sheetUrl:"", tab:"hari", day:null, dayStore:"all", dayData:null, recFrom:null, recTo:null, recStore:"all", recData:null,
   wkStart:null, wkUnit:"all", wkData:null };
 const nowMs = () => Date.now() + S.offset;
 const storeName = id => ((S.data?.stores||[]).find(s=>s.id===id)||{}).name || id || "–";
@@ -697,7 +697,7 @@ let gate="";
 function renderAdmin(){
   const v=$("#adminView"); if(S.mode!=="admin"){ v.hidden=true; return; } v.hidden=false;
   if(!S.adminPin){
-    v.innerHTML=`<div class="gate"><div class="eyebrow">Khusus admin</div><h2>Masukkan PIN admin</h2><p>6 angka. Diatur di Google Sheet, tab Pengaturan App.</p>
+    v.innerHTML=`<div class="gate"><div class="eyebrow">Khusus admin</div><h2>Masukkan PIN admin</h2><p>6 angka.</p>
       <div class="pinrow" id="gaterow">${dots(gate.length,6)}</div>
       <div class="pad">${[1,2,3,4,5,6,7,8,9].map(n=>`<button data-g="${n}">${n}</button>`).join("")}<button class="fn" data-g="c">Hapus</button><button data-g="0">0</button><button class="fn" data-g="k">Kiosk</button></div>
       <div class="err" id="gateerr"></div></div>`;
@@ -709,7 +709,7 @@ function renderAdmin(){
       const p=gate; gate=""; busy(true,"Cek PIN…");
       try{ const r=await call("adminCheck",p); busy(false);
         if(!r.ok){ $("#gaterow").innerHTML=dots(0,6); $("#gateerr").textContent=r.msg||"PIN admin salah."; return; }
-        S.adminPin=p; S.adminRole=r.role||"admin"; S.sheetUrl=r.sheetUrl||""; if(S.adminRole!=="rekap"&&S.tab==="rekap") S.tab="hari"; renderAdmin(); loadDay();
+        S.adminPin=p; S.adminRole=r.role||"admin"; S.adminSelf=r.selfId||""; S.sheetUrl=r.sheetUrl||""; if(S.adminRole!=="rekap"&&S.tab==="rekap") S.tab="hari"; renderAdmin(); loadDay();
       }catch(e){ busy(false); $("#gateerr").textContent=errMsg(e); }
     });
     return;
@@ -727,7 +727,7 @@ function renderAdmin(){
       ${S.sheetUrl?`<a class="btn sm" style="margin-left:auto" href="${esc(S.sheetUrl)}" target="_blank" rel="noopener">Buka Google Sheet ↗</a>`:""}
       <button class="btn ghost sm" id="lock" ${S.sheetUrl?"":`style="margin-left:auto"`}>Kunci</button></div><div id="tabBody"></div>`;
   v.querySelectorAll("[data-tab]").forEach(b=>b.onclick=()=>{S.tab=b.dataset.tab; renderAdmin();});
-  $("#lock").onclick=()=>{S.adminPin=null; S.adminRole="admin"; S.sheetUrl=""; renderAdmin();};
+  $("#lock").onclick=()=>{S.adminPin=null; S.adminRole="admin"; S.adminSelf=""; S.sheetUrl=""; renderAdmin();};
   ({hari:tabHari,laporan:tabLaporan,rekap:tabRekap,lembur:tabLembur,pin:tabPin})[S.tab]($("#tabBody"));
 }
 async function loadLem(){
@@ -837,7 +837,7 @@ function tabHari(el){
     if(d.absent.length){ L.push("","*Belum absen:*"); d.absent.forEach(a=>L.push("- "+a.name)); }
     copyText(L.join("\n"),"Laporan harian disalin. Tinggal tempel di WhatsApp.");
   };
-  el.querySelectorAll("[data-fx]").forEach(b=>b.onclick=()=>openFix(b.dataset));
+  el.querySelectorAll("[data-fx]").forEach(b=>b.onclick=()=>{ if(S.adminRole!=="rekap"&&S.adminSelf&&b.dataset.fx===S.adminSelf) return toast("Absen kamu sendiri tidak bisa diisi atau dikoreksi pakai PIN Admin. Minta Azizah, Ibu, atau Stu (PIN Rekap)."); openFix(b.dataset); });
   el.querySelectorAll("[data-goday]").forEach(b=>b.onclick=()=>{ S.day=b.dataset.goday; loadDay(); });
   el.querySelectorAll("[data-ph]").forEach(b=>b.onclick=async()=>{
     busy(true,"Memuat foto…");
@@ -990,7 +990,7 @@ function tabLaporan(el){
 /* ---------- shell ---------- */
 function setMode(m){
   S.mode=m; $("#m-kiosk").setAttribute("aria-pressed",m==="kiosk"); $("#m-admin").setAttribute("aria-pressed",m==="admin");
-  if(m==="kiosk"){ S.adminPin=null; S.adminRole="admin"; S.sheetUrl=""; }
+  if(m==="kiosk"){ S.adminPin=null; S.adminRole="admin"; S.adminSelf=""; S.sheetUrl=""; }
   $("#modal").innerHTML=""; renderKiosk(); renderAdmin();
 }
 $("#m-kiosk").onclick=()=>setMode("kiosk");
