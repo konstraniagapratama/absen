@@ -314,6 +314,7 @@ const initials = n => String(n||"?").replace(/^contoh\s*[-–]\s*/i,"").split(/\
 const HARI=["Minggu","Senin","Selasa","Rabu","Kamis","Jumat","Sabtu"], BULAN=["Januari","Februari","Maret","April","Mei","Juni","Juli","Agustus","September","Oktober","November","Desember"];
 const jkFmt = new Intl.DateTimeFormat("en-CA",{timeZone:"Asia/Jakarta",year:"numeric",month:"2-digit",day:"2-digit",hour:"2-digit",minute:"2-digit",second:"2-digit",hourCycle:"h23"});
 function jk(ms){ const p={}; jkFmt.formatToParts(new Date(ms)).forEach(x=>p[x.type]=x.value); return {y:+p.year,mo:+p.month,d:+p.day,h:+p.hour,mi:+p.minute,s:+p.second,key:`${p.year}-${p.month}-${p.day}`}; }
+const bulanNama = ym => { const [y,m]=String(ym).split("-").map(Number); return `${BULAN[m-1]} ${y}`; };
 const longDate = key => { const [y,m,d]=key.split("-").map(Number); return `${HARI[new Date(Date.UTC(y,m-1,d)).getUTCDay()]}, ${d} ${BULAN[m-1]} ${y}`; };
 const dur = min => `${Math.floor((min||0)/60)}j ${Math.round((min||0)%60)}m`;
 const mnt = v => { const t=Math.round(Number(v)||0), h=Math.floor(t/60), m=t%60; return h ? h+" jam"+(m?" "+m+" mnt":"") : m+" mnt"; };
@@ -470,9 +471,10 @@ function renderMe(){
     : m.action==="done" ? (m.outStr ? `<button class="btn bigact" disabled>Sudah absen pulang hari ini</button>`
       : `<button class="btn bigact" disabled>Absen hari ini sudah ditutup</button><p class="sub" style="margin:8px 0 0">Lupa absen pulang? Lapor lewat menu <b>Izin / Sakit / Cuti / Lupa absen</b>.</p>`)
     : `<button class="btn ${m.action==="in"?"primary":"sun"} bigact" id="goClock">${m.action==="in"?"Absen masuk":"Absen pulang"}</button>`;
-  const al=m.alerts||[], alOpen=al.filter(a=>!a.reported).length;
-  const alBox = al.length ? `<div class="alertbox" role="status"><b>${alOpen?`Ada ${alOpen} absen yang belum beres`:"Laporan lupa absen kamu sedang dicek admin"}</b>
-      ${alOpen?`<p>Lapor sekarang supaya jam kerja kamu benar dan tidak dihitung alpa.</p>`:""}
+  const al=m.alerts||[], alOpen=al.filter(a=>!a.reported).length, lb=m.lupaBulan||0, tk=m.tegurKe||4;
+  const lbTxt = lb ? `<p><b>Bulan ini kamu sudah lupa absen ${lb} kali.</b> ${lb>=tk?"Kamu akan ditegur atasan.":`Lupa absen lebih dari ${tk-1} kali sebulan akan ditegur atasan.`}</p>` : "";
+  const alBox = al.length||lb ? `<div class="alertbox" role="status"><b>${al.length?(alOpen?`Ada ${alOpen} absen yang belum beres`:"Laporan lupa absen kamu sedang dicek admin"):"Jangan lupa absen pulang"}</b>
+      ${alOpen?`<p>Lapor sekarang supaya jam kerja kamu benar dan tidak dihitung alpa.</p>`:""}${lbTxt}
       ${al.slice(0,5).map((a,i)=>`<div class="alrow"><div><b>${esc(a.dateLong)}</b><span>${a.type==="pulang"?`Lupa absen pulang. Tercatat pulang ${esc(a.outStr)} (otomatis)`:"Tidak ada absen masuk dan pulang"}</span></div>
         ${a.reported?`<span class="pill">Sudah dilapor</span>`:`<button class="btn sm primary" data-al="${i}">Lapor</button>`}</div>`).join("")}</div>` : "";
   sheet(`${head(e,`${e.role||"Karyawan"} · ${storeName(e.store)}`)}
@@ -821,6 +823,8 @@ function tabHari(el){
     ${(d.pending||[]).length?`<div class="card"><div class="cardhead"><h3>Lupa absen tanggal lain, belum diisi</h3><span class="sub">${d.pending.length} laporan</span></div><div class="pinlist">
       ${d.pending.map(x=>`<div class="pinrow2"><div style="min-width:0;flex:1 1 240px"><div class="namecell"><div class="av">${esc(initials(x.name))}</div><div><b>${esc(x.name)}</b> <span class="pill warn">${esc(x.dateLong)}</span><div class="sub" style="margin-top:4px">${esc(x.ket)}</div></div></div></div>
         <div class="pinact"><button class="btn sm primary" data-goday="${esc(x.date)}">Buka tanggal ini</button></div></div>`).join("")}</div></div>`:""}
+    ${d.lupa&&d.lupa.rows.length?`<div class="card"><div class="cardhead"><h3>Lupa absen bulan ${esc(bulanNama(d.lupa.month))}</h3><span class="sub">Lebih dari ${d.lupa.tegurKe-1} kali sebulan = ditegur atasan</span></div><div class="pinlist">
+      ${d.lupa.rows.map(x=>`<div class="pinrow2"><div style="min-width:0;flex:1 1 240px"><div class="namecell"><div class="av">${esc(initials(x.name))}</div><div><b>${esc(x.name)}</b> <span class="pill ${x.n>=d.lupa.tegurKe?"bad":x.n===d.lupa.tegurKe-1?"warn":""}">${x.n} kali</span>${x.n>=d.lupa.tegurKe?` <span class="pill bad">Tegur</span>`:x.n===d.lupa.tegurKe-1?` <span class="pill warn">Sekali lagi ditegur</span>`:""}<div class="sub" style="margin-top:4px">Tanggal ${esc(x.dates.join(", "))}</div></div></div></div></div>`).join("")}</div></div>`:""}
     ${(d.reports||[]).length?`<div class="card"><div class="cardhead"><h3>Laporan izin, sakit, cuti, lupa absen</h3><span class="sub">${d.reports.length} laporan</span></div><div class="pinlist">
       ${d.reports.map(x=>`<div class="pinrow2"><div style="min-width:0;flex:1 1 240px"><div class="namecell"><div class="av">${esc(initials(x.name))}</div><div><b>${esc(x.name)}</b> <span class="pill ${x.jenis==="Lupa absen"?"warn":"blue"}">${esc(x.label||x.jenis)}</span><div class="sub" style="margin-top:4px">${esc(x.ket)}</div></div></div></div>
         ${x.jenis==="Lupa absen"?`<div class="pinact"><button class="btn sm primary" data-fx="${esc(x.empId)}" data-nm="${esc(x.name)}" data-in="${esc((d.rows.find(r=>r.empId===x.empId)||{}).inStr||"")}" data-out="" data-ket="${esc(x.ket)}">Isi jam</button></div>`:""}</div>`).join("")}</div></div>`:""}`}`;
