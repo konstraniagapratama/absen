@@ -468,6 +468,7 @@ function renderMe(){
     : m.action==="out" ? `<span class="pill ${m.late>0?"warn":"ok"}">Masuk ${esc(m.inStr)}${m.late>0?` · telat ${mnt(m.late)}`:""}</span>`
     : `<span class="pill blue">Masuk ${esc(m.inStr)} · Pulang ${esc(m.outStr||"–")}</span>`;
   const main = m.action==="in"&&m.leave&&m.leave!=="Cuti" ? `<button class="btn bigact" disabled>Hari ini kamu ${esc(m.leave.toLowerCase())}</button>`
+    : m.action==="in"&&m.closed ? `<button class="btn bigact" disabled>Absen masuk ditutup jam ${esc(m.closed)}</button><p class="sub" style="margin:8px 0 0">Lewat jam ${esc(m.closed)} wajib lapor. Pakai menu <b>Izin / Sakit / Cuti / Lupa absen</b>, pilih Izin.</p>`
     : m.action==="done" ? (m.outStr ? `<button class="btn bigact" disabled>Sudah absen pulang hari ini</button>`
       : `<button class="btn bigact" disabled>Absen hari ini sudah ditutup</button><p class="sub" style="margin:8px 0 0">Lupa absen pulang? Lapor lewat menu <b>Izin / Sakit / Cuti / Lupa absen</b>.</p>`)
     : `<button class="btn ${m.action==="in"?"primary":"sun"} bigact" id="goClock">${m.action==="in"?"Absen masuk":"Absen pulang"}</button>`;
