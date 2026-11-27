@@ -158,6 +158,18 @@ h1,h2,h3{font-family:var(--f-display);font-weight:400;text-wrap:balance;margin:0
 .receipt .r span:first-child{color:var(--muted)}
 .receipt .t{font-family:var(--f-body);font-size:48px;font-weight:200;text-align:center;letter-spacing:-.02em;margin:6px 0;font-variant-numeric:tabular-nums}
 .receipt .st{text-align:center;margin-top:8px}
+/* apresiasi: kotak ucapan di struk + bintang di riwayat */
+.cheer{margin-top:12px;padding:12px 14px;border-radius:12px;text-align:center;line-height:1.35}
+.cheer .e{font-size:28px;display:block;margin-bottom:4px}
+.cheer b{display:block;font-size:14.5px}
+.cheer span{font-size:12.5px;opacity:.9}
+.cheer.ok{background:var(--ok-soft);color:var(--ok)}
+.cheer.warn{background:var(--warn-soft);color:var(--warn)}
+.cheer.bye{background:var(--accent-soft);color:var(--accent)}
+.star{display:flex;gap:12px;align-items:center;padding:12px 14px;border-radius:12px;background:var(--maroon-soft);color:var(--maroon);margin:0 0 12px;line-height:1.35}
+.star .e{font-size:26px}
+.star b{display:block;font-size:14.5px}
+.star span{font-size:12.5px;opacity:.9}
 .countdown{text-align:center;color:var(--muted);font-size:12px;margin-top:14px}
 
 /* ===== ADMIN ===== */
@@ -625,6 +637,7 @@ async function renderHistory(){
   try{
     const h=await call("myHistory",e.id,flow.pin);
     sheet(`${hd}<div class="eyebrow">Riwayat saya</div><p class="sub" style="margin:2px 0 12px">Periode gaji ${esc(h.from)} – ${esc(h.to)}</p>
+      ${h.hadir>0&&h.telat===0?`<div class="star"><span class="e">⭐</span><div><b>Bulan ini belum pernah telat. Keren!</b><span>Pertahankan terus ya</span></div></div>`:""}
       <div class="minikpi"><div><b>${h.hadir}</b><span>Hadir</span></div><div><b>${h.telat}</b><span>Telat</span></div><div><b>${h.izin}</b><span>Izin</span></div><div><b>${h.sakit}</b><span>Sakit</span></div></div>
       ${h.quota?`<p class="sub" style="margin:10px 0 12px">Jatah izin dibayar tahun ${esc(h.quota.year)}: terpakai ${h.quota.used} dari ${h.quota.jatah} hari${h.quota.lebih?`, <b>lebih ${h.quota.lebih} hari (dipotong)</b>`:`, sisa ${h.quota.sisa}`}.${h.cuti?` Cuti dicatat: ${h.cuti}x.`:""}</p>`:""}
       ${h.rows.length?`<div class="histlist">${h.rows.map(r=>r.kind==="absen"
@@ -673,6 +686,10 @@ function renderReceipt(r){
   let st;
   if(isOut) st = r.ot? `<span class="pill blue">Lembur ${dur(r.ot)}</span>` : r.early>0? `<span class="pill bad">Pulang cepat ${mnt(r.early)}</span>` : `<span class="pill ok">Sesuai jadwal</span>`;
   else st = r.late>0? `<span class="pill warn">Telat ${mnt(r.late)}</span>` : `<span class="pill ok">Tepat waktu</span>`;
+  const cheer = r.already ? ""
+    : isOut ? `<div class="cheer bye"><span class="e">😊</span><b>Hati-hati di jalan!</b><span>Terima kasih untuk kerja kerasnya hari ini</span></div>`
+    : r.late>0 ? `<div class="cheer warn"><span class="e">⏰</span><b>Besok berangkat lebih pagi ya, semangat!</b></div>`
+    : `<div class="cheer ok"><span class="e">👍</span><b>Mantap, tepat waktu!</b><span>Semangat kerjanya hari ini</span></div>`;
   sheet(`<div class="receipt" role="status">
       <div class="c"><h3>PT KONSTRA NIAGA PRATAMA</h3><div>${esc(r.store)}</div></div><hr>
       <div class="c eyebrow">${r.already?"Sudah absen hari ini":isOut?"Absen pulang":"Absen masuk"}</div>
@@ -684,7 +701,7 @@ function renderReceipt(r){
       <div class="r"><span>Pulang</span><span>${esc(r.outStr)}</span></div>
       ${isOut?`<div class="r"><span>Jam kerja</span><span>${dur(r.work)}</span></div>`:""}
       ${r.geo?`<div class="r"><span>Lokasi</span><span>${esc(r.geo)}</span></div>`:""}
-      <hr><div class="c">${st}</div>
+      <hr><div class="c">${st}</div>${cheer}
       <div class="c sub" style="margin-top:10px">No. ${esc(r.no)}</div>
     </div>
     <button class="btn primary bigact" style="margin-top:18px" data-close>Selesai</button>
